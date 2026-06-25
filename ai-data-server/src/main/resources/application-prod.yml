@@ -1,0 +1,5 @@
+spring:
+  config:
+    import:
+      - optional:file:./config/app-config-prod.properties
+      - optional:file:../config/app-config-prod.properties

@@ -1,0 +1,43 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ai-data-gateway
+  profiles:
+    active: local
+  main:
+    web-application-type: reactive
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+      timeout: 3s
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+  cloud:
+    gateway:
+      routes:
+        - id: ai-data-server
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/**
+
+sa-token:
+  token-name: Authorization
+  token-prefix: Bearer
+  timeout: 7200
+  active-timeout: 1800
+  is-concurrent: true
+  is-share: false
+  token-style: uuid
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
