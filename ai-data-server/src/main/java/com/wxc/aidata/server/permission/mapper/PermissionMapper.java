@@ -19,4 +19,9 @@ public interface PermissionMapper {
      * 查询用户拥有的权限编码。
      */
     List<String> findPermissionCodes(Long userId);
+
+    /**
+     * 查询全部启用权限编码，供 admin 超级管理员权限展开使用。
+     */
+    List<String> findAllPermissionCodes();
 }
