@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wxc.aidata.server.user.mapper.SysUserMapper">
+
+    <!-- 用户实体结果映射：使用构造方法映射 Java record，字段顺序需要和 SysUser 构造参数一致。 -->
+    <resultMap id="SysUserResultMap" type="com.wxc.aidata.server.user.entity.SysUser">
+        <constructor>
+            <arg column="id" javaType="java.lang.Long"/>
+            <arg column="username" javaType="java.lang.String"/>
+            <arg column="password" javaType="java.lang.String"/>
+            <arg column="nickname" javaType="java.lang.String"/>
+            <arg column="status" javaType="java.lang.Integer"/>
+            <arg column="deleted" javaType="java.lang.Integer"/>
+            <arg column="last_login_time" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <!-- 根据登录账号查询用户；登录层会继续判断删除状态和密码是否匹配。 -->
+    <select id="findByUsername" resultMap="SysUserResultMap">
+        SELECT
+            id,
+            username,
+            password,
+            nickname,
+            status,
+            deleted,
+            last_login_time
+        FROM sys_user
+        WHERE username = #{username}
+        LIMIT 1
+    </select>
+
+    <!-- 根据用户 ID 查询用户；用于 token 有效时恢复当前登录用户信息。 -->
+    <select id="findById" resultMap="SysUserResultMap">
+        SELECT
+            id,
+            username,
+            password,
+            nickname,
+            status,
+            deleted,
+            last_login_time
+        FROM sys_user
+        WHERE id = #{id}
+        LIMIT 1
+    </select>
+</mapper>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wxc.aidata.server.permission.mapper.PermissionMapper">
+
+    <!-- 查询用户拥有的启用角色编码，返回给登录响应和 Sa-Token 角色校验使用。 -->
+    <select id="findRoleCodes" resultType="java.lang.String">
+        SELECT
+            r.role_code
+        FROM sys_role r
+        INNER JOIN sys_user_role ur ON ur.role_id = r.id
+        WHERE ur.user_id = #{userId}
+          AND r.status = 1
+        ORDER BY r.role_code
+    </select>
+
+    <!-- 查询用户拥有的启用权限编码，过滤空权限，供前端菜单按钮和后端鉴权使用。 -->
+    <select id="findPermissionCodes" resultType="java.lang.String">
+        SELECT
+            p.permission_code
+        FROM sys_permission p
+        INNER JOIN sys_role_permission rp ON rp.permission_id = p.id
+        INNER JOIN sys_user_role ur ON ur.role_id = rp.role_id
+        INNER JOIN sys_role r ON r.id = ur.role_id
+        WHERE ur.user_id = #{userId}
+          AND r.status = 1
+          AND p.status = 1
+          AND p.permission_code IS NOT NULL
+          AND p.permission_code &lt;&gt; ''
+        ORDER BY p.permission_code
+    </select>
+</mapper>
