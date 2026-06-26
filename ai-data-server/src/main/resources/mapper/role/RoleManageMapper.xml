@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wxc.aidata.server.role.mapper.RoleManageMapper">
+
+    <!-- 角色管理结果映射，对应 sys_role 展示字段。 -->
+    <resultMap id="RoleResultMap" type="com.wxc.aidata.server.role.mapper.RoleManageMapper$RoleRow">
+        <constructor>
+            <arg column="id" javaType="java.lang.Long"/>
+            <arg column="role_code" javaType="java.lang.String"/>
+            <arg column="role_name" javaType="java.lang.String"/>
+            <arg column="status" javaType="java.lang.Integer"/>
+            <arg column="description" javaType="java.lang.String"/>
+            <arg column="created_time" javaType="java.time.LocalDateTime"/>
+            <arg column="updated_time" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <!-- 分页查询角色，PageHelper 在运行时追加分页 SQL。 -->
+    <select id="findRoles" resultMap="RoleResultMap">
+        SELECT
+            id,
+            role_code,
+            role_name,
+            status,
+            description,
+            created_time,
+            updated_time
+        FROM sys_role
+        <where>
+            <if test="query.roleCode != null and query.roleCode != ''">
+                AND role_code LIKE CONCAT('%', #{query.roleCode}, '%')
+            </if>
+            <if test="query.status != null">
+                AND status = #{query.status}
+            </if>
+        </where>
+        ORDER BY id
+    </select>
+
+    <!-- 查询角色详情。 -->
+    <select id="findRoleById" resultMap="RoleResultMap">
+        SELECT
+            id,
+            role_code,
+            role_name,
+            status,
+            description,
+            created_time,
+            updated_time
+        FROM sys_role
+        WHERE id = #{id}
+    </select>
+
+    <!-- 新增前校验角色编码唯一性。 -->
+    <select id="existsByRoleCode" resultType="java.lang.Boolean">
+        SELECT COUNT(1) > 0
+        FROM sys_role
+        WHERE role_code = #{roleCode}
+    </select>
+
+    <!-- 编辑前校验角色编码唯一性，排除当前角色。 -->
+    <select id="existsByRoleCodeExcludeId" resultType="java.lang.Boolean">
+        SELECT COUNT(1) > 0
+        FROM sys_role
+        WHERE role_code = #{roleCode}
+          AND id &lt;&gt; #{id}
+    </select>
+
+    <!-- 查询角色是否存在。 -->
+    <select id="existsById" resultType="java.lang.Boolean">
+        SELECT COUNT(1) > 0
+        FROM sys_role
+        WHERE id = #{id}
+    </select>
+
+    <!-- 新增角色基础信息。 -->
+    <insert id="insertRole">
+        INSERT INTO sys_role (
+            id,
+            role_code,
+            role_name,
+            status,
+            description,
+            created_time,
+            updated_time
+        ) VALUES (
+            #{id},
+            #{roleCode},
+            #{roleName},
+            #{status},
+            #{description},
+            #{createdTime},
+            #{updatedTime}
+        )
+    </insert>
+
+    <!-- 更新角色基础信息。 -->
+    <update id="updateRole">
+        UPDATE sys_role
+        SET role_code = #{roleCode},
+            role_name = #{roleName},
+            status = #{status},
+            description = #{description},
+            updated_time = #{updatedTime}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 更新角色状态。 -->
+    <update id="updateStatus">
+        UPDATE sys_role
+        SET status = #{status},
+            updated_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除前统计角色是否已分配给用户。 -->
+    <select id="countUsersByRoleId" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM sys_user_role
+        WHERE role_id = #{roleId}
+    </select>
+
+    <!-- 查询角色关联用户，用于刷新权限缓存。 -->
+    <select id="findUserIdsByRoleId" resultType="java.lang.Long">
+        SELECT user_id
+        FROM sys_user_role
+        WHERE role_id = #{roleId}
+        ORDER BY user_id
+    </select>
+
+    <!-- 删除角色前清理角色权限关系。 -->
+    <delete id="deleteRolePermissions">
+        DELETE FROM sys_role_permission
+        WHERE role_id = #{roleId}
+    </delete>
+
+    <!-- 删除角色定义。 -->
+    <delete id="deleteRole">
+        DELETE FROM sys_role
+        WHERE id = #{id}
+    </delete>
+</mapper>

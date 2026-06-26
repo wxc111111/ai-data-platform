@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wxc.aidata.server.role.mapper.RoleQueryMapper">
+
+    <!-- 角色选项结果映射，用于用户管理页面的角色下拉框。 -->
+    <resultMap id="RoleOptionResultMap" type="com.wxc.aidata.server.role.response.RoleOptionResponse">
+        <constructor>
+            <arg column="id" javaType="java.lang.Long"/>
+            <arg column="role_code" javaType="java.lang.String"/>
+            <arg column="role_name" javaType="java.lang.String"/>
+        </constructor>
+    </resultMap>
+
+    <!-- 查询启用角色，禁用角色不允许继续分配给用户。 -->
+    <select id="findEnabledRoleOptions" resultMap="RoleOptionResultMap">
+        SELECT
+            id,
+            role_code,
+            role_name
+        FROM sys_role
+        WHERE status = 1
+        ORDER BY role_code
+    </select>
+</mapper>

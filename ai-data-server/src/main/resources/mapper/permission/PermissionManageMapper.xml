@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wxc.aidata.server.permission.mapper.PermissionManageMapper">
+
+    <!-- 权限管理结果映射，对应 sys_permission 展示字段。 -->
+    <resultMap id="PermissionResultMap" type="com.wxc.aidata.server.permission.mapper.PermissionManageMapper$PermissionRow">
+        <constructor>
+            <arg column="id" javaType="java.lang.Long"/>
+            <arg column="parent_id" javaType="java.lang.Long"/>
+            <arg column="permission_name" javaType="java.lang.String"/>
+            <arg column="permission_code" javaType="java.lang.String"/>
+            <arg column="permission_type" javaType="java.lang.String"/>
+            <arg column="route_path" javaType="java.lang.String"/>
+            <arg column="component_path" javaType="java.lang.String"/>
+            <arg column="icon" javaType="java.lang.String"/>
+            <arg column="sort_no" javaType="java.lang.Integer"/>
+            <arg column="status" javaType="java.lang.Integer"/>
+            <arg column="created_time" javaType="java.time.LocalDateTime"/>
+            <arg column="updated_time" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <!-- 查询全部权限节点，服务层负责组装树结构。 -->
+    <select id="findPermissions" resultMap="PermissionResultMap">
+        SELECT
+            id,
+            parent_id,
+            permission_name,
+            permission_code,
+            permission_type,
+            route_path,
+            component_path,
+            icon,
+            sort_no,
+            status,
+            created_time,
+            updated_time
+        FROM sys_permission
+        ORDER BY sort_no, id
+    </select>
+
+    <!-- 查询权限详情。 -->
+    <select id="findPermissionById" resultMap="PermissionResultMap">
+        SELECT
+            id,
+            parent_id,
+            permission_name,
+            permission_code,
+            permission_type,
+            route_path,
+            component_path,
+            icon,
+            sort_no,
+            status,
+            created_time,
+            updated_time
+        FROM sys_permission
+        WHERE id = #{id}
+    </select>
+
+    <!-- 查询权限节点是否存在。 -->
+    <select id="existsById" resultType="java.lang.Boolean">
+        SELECT COUNT(1) > 0
+        FROM sys_permission
+        WHERE id = #{id}
+    </select>
+
+    <!-- 新增前校验权限编码唯一性。 -->
+    <select id="existsByPermissionCode" resultType="java.lang.Boolean">
+        SELECT COUNT(1) > 0
+        FROM sys_permission
+        WHERE permission_code = #{permissionCode}
+    </select>
+
+    <!-- 编辑前校验权限编码唯一性，排除当前权限。 -->
+    <select id="existsByPermissionCodeExcludeId" resultType="java.lang.Boolean">
+        SELECT COUNT(1) > 0
+        FROM sys_permission
+        WHERE permission_code = #{permissionCode}
+          AND id &lt;&gt; #{id}
+    </select>
+
+    <!-- 新增权限节点。 -->
+    <insert id="insertPermission">
+        INSERT INTO sys_permission (
+            id,
+            parent_id,
+            permission_name,
+            permission_code,
+            permission_type,
+            route_path,
+            component_path,
+            icon,
+            sort_no,
+            status,
+            created_time,
+            updated_time
+        ) VALUES (
+            #{id},
+            #{parentId},
+            #{permissionName},
+            #{permissionCode},
+            #{permissionType},
+            #{routePath},
+            #{componentPath},
+            #{icon},
+            #{sortNo},
+            #{status},
+            #{createdTime},
+            #{updatedTime}
+        )
+    </insert>
+
+    <!-- 更新权限节点。 -->
+    <update id="updatePermission">
+        UPDATE sys_permission
+        SET parent_id = #{parentId},
+            permission_name = #{permissionName},
+            permission_code = #{permissionCode},
+            permission_type = #{permissionType},
+            route_path = #{routePath},
+            component_path = #{componentPath},
+            icon = #{icon},
+            sort_no = #{sortNo},
+            status = #{status},
+            updated_time = #{updatedTime}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 更新权限状态。 -->
+    <update id="updateStatus">
+        UPDATE sys_permission
+        SET status = #{status},
+            updated_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 统计子权限数量。 -->
+    <select id="countChildren" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM sys_permission
+        WHERE parent_id = #{id}
+    </select>
+
+    <!-- 统计权限被非 admin 角色引用数量，admin 授权关系允许随权限删除一起清理。 -->
+    <select id="countNonAdminRolesByPermissionId" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM sys_role_permission
+        WHERE permission_id = #{id}
+          AND role_id &lt;&gt; 1
+    </select>
+
+    <!-- 删除权限前清理角色权限关系，主要用于清理 admin 的冗余授权。 -->
+    <delete id="deleteRolePermissionsByPermissionId">
+        DELETE FROM sys_role_permission
+        WHERE permission_id = #{id}
+    </delete>
+
+    <!-- 查询拥有该权限的用户，用于刷新 Redis 权限缓存。 -->
+    <select id="findUserIdsByPermissionId" resultType="java.lang.Long">
+        SELECT DISTINCT ur.user_id
+        FROM sys_user_role ur
+        INNER JOIN sys_role_permission rp ON rp.role_id = ur.role_id
+        WHERE rp.permission_id = #{id}
+        ORDER BY ur.user_id
+    </select>
+
+    <!-- 删除权限节点。 -->
+    <delete id="deletePermission">
+        DELETE FROM sys_permission
+        WHERE id = #{id}
+    </delete>
+</mapper>

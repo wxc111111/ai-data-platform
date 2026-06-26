@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wxc.aidata.server.role.mapper.RolePermissionMapper">
+
+    <!-- 查询角色是否存在。 -->
+    <select id="existsRoleById" resultType="java.lang.Boolean">
+        SELECT COUNT(1) > 0
+        FROM sys_role
+        WHERE id = #{roleId}
+    </select>
+
+    <!-- 查询角色已授权权限 ID。 -->
+    <select id="findPermissionIdsByRoleId" resultType="java.lang.Long">
+        SELECT permission_id
+        FROM sys_role_permission
+        WHERE role_id = #{roleId}
+        ORDER BY permission_id
+    </select>
+
+    <!-- 查询启用权限 ID，用于校验授权请求。 -->
+    <select id="findEnabledPermissionIds" resultType="java.lang.Long">
+        SELECT id
+        FROM sys_permission
+        WHERE status = 1
+          AND id IN
+        <foreach collection="permissionIds" item="permissionId" open="(" separator="," close=")">
+            #{permissionId}
+        </foreach>
+    </select>
+
+    <!-- 查询角色关联用户，用于授权变更后刷新权限缓存。 -->
+    <select id="findUserIdsByRoleId" resultType="java.lang.Long">
+        SELECT user_id
+        FROM sys_user_role
+        WHERE role_id = #{roleId}
+        ORDER BY user_id
+    </select>
+
+    <!-- 覆盖保存前删除角色已有权限关系。 -->
+    <delete id="deleteRolePermissions">
+        DELETE FROM sys_role_permission
+        WHERE role_id = #{roleId}
+    </delete>
+
+    <!-- 批量插入角色权限关系。 -->
+    <insert id="insertRolePermissions">
+        INSERT INTO sys_role_permission (
+            role_id,
+            permission_id
+        ) VALUES
+        <foreach collection="permissionIds" item="permissionId" separator=",">
+            (
+                #{roleId},
+                #{permissionId}
+            )
+        </foreach>
+    </insert>
+</mapper>
