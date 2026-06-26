@@ -234,6 +234,58 @@ cd ai-data-web
 npm run build
 ```
 
+## 日志
+
+项目使用 Spring Boot 默认的 `SLF4J + Logback`。
+
+已配置：
+
+- `ai-data-server/src/main/resources/logback-spring.xml`
+- `ai-data-gateway/src/main/resources/logback-spring.xml`
+
+默认输出：
+
+```text
+logs/ai-data-server/app.log
+logs/ai-data-gateway/app.log
+```
+
+日志文件按天滚动，默认保留 30 天。
+
+业务服务已接入请求日志过滤器：
+
+```text
+ai-data-server/src/main/java/com/wxc/aidata/server/common/logging/RequestLoggingFilter.java
+```
+
+每个 HTTP 请求会记录：
+
+```text
+requestId
+method
+path
+status
+costMs
+```
+
+调用方可通过请求头透传链路标识：
+
+```http
+X-Request-Id: trace-001
+```
+
+业务代码中建议使用 SLF4J 占位符写法：
+
+```java
+private static final Logger log = LoggerFactory.getLogger(DemoService.class);
+
+log.info("用户登录成功，userId={}, username={}", userId, username);
+log.warn("接口响应较慢，path={}, costMs={}", path, costMs);
+log.error("调用第三方接口失败，apiCode={}", apiCode, e);
+```
+
+不要记录明文密码、完整 Token、数据库密码或第三方系统密钥。
+
 ## 安全说明
 
 - 登录密码使用 BCrypt 加密保存，不保存明文密码。

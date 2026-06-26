@@ -14,6 +14,8 @@ import com.wxc.aidata.server.role.request.RoleUpdateRequest;
 import com.wxc.aidata.server.role.response.RoleResponse;
 import com.wxc.aidata.server.role.service.RoleManageService;
 import com.wxc.aidata.server.role.service.RolePermissionService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,6 +38,8 @@ public class RoleManageController {
     private final RoleManageService roleManageService;
     private final RolePermissionService rolePermissionService;
 
+    private static final Logger log = LoggerFactory.getLogger(RoleManageController.class);
+
     /**
      * 注入角色管理服务和角色授权服务。
      */
@@ -55,7 +59,6 @@ public class RoleManageController {
             @RequestParam(name = "roleCode", required = false) String roleCode,
             @RequestParam(name = "status", required = false) Integer status) {
         PageResult<RoleResponse> roleResponsePageResult = roleManageService.pageRoles(new RolePageQuery(pageNo, pageSize, roleCode, status));
-        System.out.println("Role response page result: " + roleResponsePageResult);
         return Result.success(roleResponsePageResult);
     }
 

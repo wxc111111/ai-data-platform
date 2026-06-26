@@ -61,10 +61,8 @@ public class RoleManageServiceImpl implements RoleManageService {
         RolePageQuery safeQuery = query == null ? new RolePageQuery(1, 10, null, null) : query;
         PageHelper.startPage(safeQuery.normalizedPageNo(), safeQuery.normalizedPageSize());
         List<RoleManageMapper.RoleRow> rows = roleManageMapper.findRoles(safeQuery);
-        System.out.println("Role rows: " + rows);
         PageInfo<RoleManageMapper.RoleRow> pageInfo = new PageInfo<>(rows);
         List<RoleResponse> records = rows.stream().map(this::toResponse).toList();
-        System.out.println("Role responses: " + records);
         return PageResult.of(pageInfo.getTotal(), safeQuery.normalizedPageNo(), safeQuery.normalizedPageSize(), records);
     }
 
