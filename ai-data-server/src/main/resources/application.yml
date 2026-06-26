@@ -23,7 +23,7 @@ spring:
           max-idle: 8
           min-idle: 0
 
-mybatis:
+mybatis-plus:
   mapper-locations: classpath*:mapper/**/*.xml
   configuration:
     map-underscore-to-camel-case: true

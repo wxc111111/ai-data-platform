@@ -23,7 +23,7 @@
         <java.version>21</java.version>
         <spring-boot.version>3.3.5</spring-boot.version>
         <spring-cloud.version>2023.0.3</spring-cloud.version>
-        <mybatis-spring-boot.version>3.0.3</mybatis-spring-boot.version>
+        <mybatis-plus.version>3.5.9</mybatis-plus.version>
         <pagehelper-spring-boot.version>2.1.0</pagehelper-spring-boot.version>
         <sa-token.version>1.38.0</sa-token.version>
         <mysql.version>8.4.0</mysql.version>

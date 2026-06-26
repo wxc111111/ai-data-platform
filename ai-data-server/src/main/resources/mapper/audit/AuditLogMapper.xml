@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wxc.aidata.server.audit.mapper.AuditLogMapper">
+
+    <!-- 插入登录日志，只保存审计必要字段，不保存明文密码或 token。 -->
+    <insert id="insertLoginLog">
+        INSERT INTO sys_login_log (
+            id,
+            user_id,
+            username,
+            login_ip,
+            user_agent,
+            login_status,
+            message,
+            login_time
+        ) VALUES (
+            #{id},
+            #{userId},
+            #{username},
+            #{loginIp},
+            #{userAgent},
+            #{loginStatus},
+            #{message},
+            #{loginTime}
+        )
+    </insert>
+
+    <!-- 插入操作日志，请求参数由拦截器脱敏后写入。 -->
+    <insert id="insertOperationLog">
+        INSERT INTO sys_operation_log (
+            id,
+            request_id,
+            user_id,
+            username,
+            module_name,
+            operation_name,
+            request_method,
+            request_path,
+            request_ip,
+            request_params,
+            status,
+            duration_ms,
+            error_message,
+            created_time
+        ) VALUES (
+            #{id},
+            #{requestId},
+            #{userId},
+            #{username},
+            #{moduleName},
+            #{operationName},
+            #{requestMethod},
+            #{requestPath},
+            #{requestIp},
+            #{requestParams},
+            #{status},
+            #{durationMs},
+            #{errorMessage},
+            #{createdTime}
+        )
+    </insert>
+</mapper>

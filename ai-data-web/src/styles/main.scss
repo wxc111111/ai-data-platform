@@ -334,6 +334,25 @@ input {
   grid-template-columns: minmax(160px, 220px) 140px auto auto 1fr;
 }
 
+.audit-filter-bar {
+  grid-template-columns: minmax(160px, 220px) minmax(160px, 220px) minmax(360px, 1fr) auto;
+
+  .audit-time-range {
+    width: 100%;
+  }
+
+  .filter-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-start;
+    white-space: nowrap;
+  }
+}
+
+.operation-log-filter {
+  grid-template-columns: minmax(150px, 200px) minmax(220px, 1fr) minmax(140px, 160px) minmax(360px, 1fr) auto;
+}
+
 .data-table {
   width: 100%;
   border: 1px solid #e5ebf3;
@@ -409,6 +428,12 @@ input {
 
   .filter-bar {
     grid-template-columns: 1fr;
+  }
+
+  .audit-filter-bar {
+    .filter-actions {
+      width: 100%;
+    }
   }
 
   .intro-grid {

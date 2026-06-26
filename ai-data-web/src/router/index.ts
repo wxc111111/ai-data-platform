@@ -7,6 +7,8 @@ import NoPermissionView from '@/views/NoPermissionView.vue'
 import PermissionManageView from '@/views/PermissionManageView.vue'
 import RoleManageView from '@/views/RoleManageView.vue'
 import UserManageView from '@/views/UserManageView.vue'
+import LoginLogView from '@/views/LoginLogView.vue'
+import OperationLogView from '@/views/OperationLogView.vue'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -59,6 +61,22 @@ export const router = createRouter({
           }
         },
         {
+          path: 'login-logs',
+          name: 'login-logs',
+          component: LoginLogView,
+          meta: {
+            permission: 'system:login-log:menu'
+          }
+        },
+        {
+          path: 'operation-logs',
+          name: 'operation-logs',
+          component: OperationLogView,
+          meta: {
+            permission: 'system:operation-log:menu'
+          }
+        },
+        {
           path: 'no-permission',
           name: 'no-permission',
           component: NoPermissionView
@@ -82,7 +100,7 @@ router.beforeEach((to) => {
     return '/login'
   }
 
-  // 路由级权限控制，避免无角色用户直接输入地址访问功能页面。
+  // 路由级权限控制，避免无权限用户直接输入地址访问功能页面。
   const permission = to.meta.permission
   if (typeof permission === 'string' && !authStore.hasPermission(permission)) {
     return '/home/no-permission'

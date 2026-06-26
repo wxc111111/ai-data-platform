@@ -27,6 +27,14 @@
             <el-icon><Key /></el-icon>
             <span>菜单权限</span>
           </el-menu-item>
+          <el-menu-item v-if="authStore.hasPermission('system:login-log:menu')" index="/home/login-logs">
+            <el-icon><Document /></el-icon>
+            <span>登录日志</span>
+          </el-menu-item>
+          <el-menu-item v-if="authStore.hasPermission('system:operation-log:menu')" index="/home/operation-logs">
+            <el-icon><Tickets /></el-icon>
+            <span>操作日志</span>
+          </el-menu-item>
         </el-sub-menu>
       </el-menu>
     </aside>
@@ -51,7 +59,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { House, Key, Setting, User, UserFilled } from '@element-plus/icons-vue'
+import { Document, House, Key, Setting, Tickets, User, UserFilled } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
@@ -66,9 +74,12 @@ const showSystemMenu = computed(
   () =>
     authStore.hasPermission('system:user:menu') ||
     authStore.hasPermission('system:role:menu') ||
-    authStore.hasPermission('system:permission:menu')
+    authStore.hasPermission('system:permission:menu') ||
+    authStore.hasPermission('system:login-log:menu') ||
+    authStore.hasPermission('system:operation-log:menu')
 )
 
+// 清理本地登录状态并返回登录页。
 async function handleLogout() {
   authStore.logout()
   await router.push('/login')
