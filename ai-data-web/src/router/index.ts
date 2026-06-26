@@ -8,6 +8,7 @@ import PermissionManageView from '@/views/PermissionManageView.vue'
 import RoleManageView from '@/views/RoleManageView.vue'
 import UserManageView from '@/views/UserManageView.vue'
 import BusinessSystemView from '@/views/BusinessSystemView.vue'
+import BusinessApiView from '@/views/BusinessApiView.vue'
 import LoginLogView from '@/views/LoginLogView.vue'
 import OperationLogView from '@/views/OperationLogView.vue'
 
@@ -67,6 +68,14 @@ export const router = createRouter({
           component: BusinessSystemView,
           meta: {
             permission: 'system:business-system:menu'
+          }
+        },
+        {
+          path: 'business-apis',
+          name: 'business-apis',
+          component: BusinessApiView,
+          meta: {
+            permission: 'system:business-api:menu'
           }
         },
         {

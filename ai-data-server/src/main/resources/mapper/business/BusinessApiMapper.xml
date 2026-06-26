@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wxc.aidata.server.business.mapper.BusinessApiMapper">
+
+    <resultMap id="BusinessApiRowMap" type="com.wxc.aidata.server.business.mapper.BusinessApiMapper$BusinessApiRow">
+        <constructor>
+            <arg column="id" javaType="java.lang.Long"/>
+            <arg column="system_id" javaType="java.lang.Long"/>
+            <arg column="system_name" javaType="java.lang.String"/>
+            <arg column="system_base_url" javaType="java.lang.String"/>
+            <arg column="api_code" javaType="java.lang.String"/>
+            <arg column="api_name" javaType="java.lang.String"/>
+            <arg column="request_path" javaType="java.lang.String"/>
+            <arg column="request_method" javaType="java.lang.String"/>
+            <arg column="content_type" javaType="java.lang.String"/>
+            <arg column="connect_timeout" javaType="java.lang.Integer"/>
+            <arg column="read_timeout" javaType="java.lang.Integer"/>
+            <arg column="response_data_path" javaType="java.lang.String"/>
+            <arg column="status" javaType="java.lang.Integer"/>
+            <arg column="description" javaType="java.lang.String"/>
+            <arg column="created_time" javaType="java.time.LocalDateTime"/>
+            <arg column="updated_time" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <!-- 按业务系统、名称、编码和状态筛选业务接口，PageHelper 负责追加分页 SQL。 -->
+    <select id="findBusinessApis" resultMap="BusinessApiRowMap">
+        SELECT
+            a.id,
+            a.system_id,
+            s.system_name,
+            s.base_url AS system_base_url,
+            a.api_code,
+            a.api_name,
+            a.request_path,
+            a.request_method,
+            a.content_type,
+            a.connect_timeout,
+            a.read_timeout,
+            a.response_data_path,
+            a.status,
+            a.description,
+            a.created_time,
+            a.updated_time
+        FROM biz_api a
+        INNER JOIN biz_system s ON s.id = a.system_id
+        <where>
+            <if test="query.systemId != null">
+                AND a.system_id = #{query.systemId}
+            </if>
+            <if test="query.apiName != null and query.apiName != ''">
+                AND a.api_name LIKE CONCAT('%', #{query.apiName}, '%')
+            </if>
+            <if test="query.apiCode != null and query.apiCode != ''">
+                AND a.api_code LIKE CONCAT('%', #{query.apiCode}, '%')
+            </if>
+            <if test="query.status != null">
+                AND a.status = #{query.status}
+            </if>
+        </where>
+        ORDER BY a.updated_time DESC, a.id DESC
+    </select>
+
+    <!-- 新增前校验接口编码唯一性。 -->
+    <select id="existsByApiCode" resultType="boolean">
+        SELECT COUNT(1) > 0
+        FROM biz_api
+        WHERE api_code = #{apiCode}
+    </select>
+
+    <!-- 编辑前校验除当前记录外的接口编码唯一性。 -->
+    <select id="existsByApiCodeExcludeId" resultType="boolean">
+        SELECT COUNT(1) > 0
+        FROM biz_api
+        WHERE api_code = #{apiCode}
+          AND id != #{id}
+    </select>
+</mapper>

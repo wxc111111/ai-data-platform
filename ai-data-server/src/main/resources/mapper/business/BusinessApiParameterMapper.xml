@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wxc.aidata.server.business.mapper.BusinessApiParameterMapper">
+
+    <resultMap id="BizApiParameterResultMap" type="com.wxc.aidata.server.business.entity.BizApiParameter">
+        <id property="id" column="id"/>
+        <result property="apiId" column="api_id"/>
+        <result property="parameterName" column="parameter_name"/>
+        <result property="parameterLocation" column="parameter_location"/>
+        <result property="parameterType" column="parameter_type"/>
+        <result property="required" column="required"/>
+        <result property="defaultValue" column="default_value"/>
+        <result property="description" column="description"/>
+        <result property="sortNo" column="sort_no"/>
+        <result property="createdTime" column="created_time"/>
+        <result property="updatedTime" column="updated_time"/>
+    </resultMap>
+
+    <!-- 查询接口参数，按排序号和 ID 保持稳定展示顺序。 -->
+    <select id="findByApiId" resultMap="BizApiParameterResultMap">
+        SELECT
+            id,
+            api_id,
+            parameter_name,
+            parameter_location,
+            parameter_type,
+            required,
+            default_value,
+            description,
+            sort_no,
+            created_time,
+            updated_time
+        FROM biz_api_parameter
+        WHERE api_id = #{apiId}
+        ORDER BY sort_no ASC, id ASC
+    </select>
+
+    <!-- 覆盖保存参数前先清理接口已有参数。 -->
+    <delete id="deleteByApiId">
+        DELETE FROM biz_api_parameter
+        WHERE api_id = #{apiId}
+    </delete>
+</mapper>

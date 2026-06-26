@@ -353,6 +353,119 @@ input {
   grid-template-columns: minmax(150px, 200px) minmax(220px, 1fr) minmax(140px, 160px) minmax(360px, 1fr) auto;
 }
 
+// 业务接口筛选项比通用筛选栏多一列，单独定义列宽，避免状态下拉被压缩或按钮被拉满。
+.business-api-filter {
+  grid-template-columns: minmax(200px, 280px) minmax(180px, 240px) minmax(180px, 240px) 140px auto auto 1fr;
+
+  .el-button {
+    justify-self: start;
+  }
+}
+
+// 在线测试弹窗按接口信息、请求参数、返回数据分区，保证没有参数时也有完整上下文。
+.api-test-dialog {
+  .el-dialog__body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-top: 8px;
+  }
+}
+
+.test-detail-panel,
+.test-section {
+  border: 1px solid #e5ebf3;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 14px;
+}
+
+.test-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.test-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+
+  span {
+    color: #667085;
+    font-size: 13px;
+  }
+
+  strong,
+  code {
+    min-height: 24px;
+    overflow-wrap: anywhere;
+    color: #1d2939;
+    font-size: 14px;
+  }
+
+  code {
+    border-radius: 6px;
+    background: #f6f8fb;
+    padding: 8px 10px;
+    font-family: Consolas, 'Courier New', monospace;
+  }
+}
+
+.test-detail-item.full {
+  grid-column: 1 / -1;
+}
+
+.test-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+
+  strong {
+    color: #1d2939;
+    font-size: 15px;
+  }
+
+  span {
+    color: #667085;
+    font-size: 13px;
+  }
+}
+
+.response-box {
+  border: 1px solid #e5ebf3;
+  border-radius: 8px;
+  background: #f8fafc;
+
+  & + .response-box {
+    margin-top: 12px;
+  }
+
+  span {
+    display: block;
+    border-bottom: 1px solid #e5ebf3;
+    padding: 8px 12px;
+    color: #667085;
+    font-size: 13px;
+  }
+
+  pre {
+    max-height: 220px;
+    margin: 0;
+    overflow: auto;
+    padding: 12px;
+    color: #1d2939;
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+}
+
 .data-table {
   width: 100%;
   border: 1px solid #e5ebf3;
@@ -438,5 +551,13 @@ input {
 
   .intro-grid {
     grid-template-columns: 1fr;
+  }
+
+  .test-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .test-detail-item.full {
+    grid-column: auto;
   }
 }
