@@ -466,6 +466,20 @@ input {
   }
 }
 
+.preview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.9fr);
+  gap: 12px;
+
+  .response-box:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+.test-error-alert {
+  margin-bottom: 12px;
+}
+
 .data-table {
   width: 100%;
   border: 1px solid #e5ebf3;
@@ -559,5 +573,13 @@ input {
 
   .test-detail-item.full {
     grid-column: auto;
+  }
+
+  .preview-grid {
+    grid-template-columns: 1fr;
+
+    .response-box:first-child {
+      grid-column: auto;
+    }
   }
 }

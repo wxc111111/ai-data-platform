@@ -254,11 +254,34 @@
 
       <section class="test-section">
         <div class="test-section-title">
+          <strong>请求预览</strong>
+          <span>根据当前测试值实时生成</span>
+        </div>
+        <div class="preview-grid">
+          <div class="response-box">
+            <span>请求地址</span>
+            <pre>{{ requestPreview.url }}</pre>
+          </div>
+          <div class="response-box">
+            <span>请求 Header</span>
+            <pre>{{ requestPreview.headers }}</pre>
+          </div>
+          <div class="response-box">
+            <span>请求 Body</span>
+            <pre>{{ requestPreview.body }}</pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="test-section">
+        <div class="test-section-title">
           <strong>返回数据</strong>
           <span v-if="testResult">状态码 {{ testResult.statusCode }}，耗时 {{ testResult.costMs }} ms</span>
+          <span v-else-if="testError">测试失败</span>
           <span v-else>发起测试后展示返回内容</span>
         </div>
-        <el-empty v-if="!testResult" description="暂无返回数据" />
+        <el-alert v-if="testError" class="test-error-alert" type="error" :closable="false" :description="testError" show-icon />
+        <el-empty v-else-if="!testResult" description="暂无返回数据" />
         <template v-else>
           <div class="response-box">
             <span>提取数据</span>
@@ -266,7 +289,7 @@
           </div>
           <div class="response-box">
             <span>原始响应</span>
-            <pre>{{ testResult.body || '-' }}</pre>
+            <pre>{{ formatResponseBody(testResult.body) }}</pre>
           </div>
         </template>
       </section>
@@ -280,7 +303,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { Delete, Edit, Plus, Refresh, Search, VideoPlay } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import {
@@ -312,6 +335,7 @@ const systemOptions = ref<BusinessSystemItem[]>([])
 const editingApi = ref<BusinessApiItem | null>(null)
 const testingApi = ref<BusinessApiItem | null>(null)
 const testResult = ref<BusinessApiTestResponse | null>(null)
+const testError = ref('')
 const formRef = ref<FormInstance>()
 const authStore = useAuthStore()
 
@@ -344,6 +368,7 @@ const apiForm = reactive<BusinessApiPayload>({
 })
 
 const testValues = reactive<Record<string, string>>({})
+const requestPreview = computed(() => buildRequestPreview())
 
 const rules: FormRules = {
   systemId: [{ required: true, message: '请选择业务系统', trigger: 'change' }],
@@ -515,6 +540,7 @@ async function openTestDialog(api: BusinessApiItem) {
     const detail = await fetchBusinessApi(api.id)
     testingApi.value = detail
     testResult.value = null
+    testError.value = ''
     Object.keys(testValues).forEach((key) => delete testValues[key])
     detail.parameters.forEach((parameter) => {
       testValues[parameter.parameterName] = parameter.defaultValue || ''
@@ -531,10 +557,12 @@ async function submitTest() {
     return
   }
   testing.value = true
+  testError.value = ''
+  testResult.value = null
   try {
     testResult.value = await testBusinessApi(testingApi.value.id, { ...testValues })
   } catch (error) {
-    showError(error, '接口测试失败')
+    testError.value = getErrorMessage(error, '接口测试失败')
   } finally {
     testing.value = false
   }
@@ -597,6 +625,74 @@ function testPlaceholder(parameter: BusinessApiParameterItem) {
   return `${parameter.parameterLocation} / ${parameter.parameterType}${parameter.required === 1 ? ' / 必填' : ''}`
 }
 
+// 根据当前测试值生成请求预览，认证 Header 由后端执行时自动附加，前端不展示密钥。
+function buildRequestPreview() {
+  const api = testingApi.value
+  if (!api) {
+    return { url: '-', headers: '-', body: '-' }
+  }
+  let url = api.fullRequestUrl || api.requestPath
+  const queryItems: string[] = []
+  const headerItems: Record<string, string> = {}
+  const bodyItems: Record<string, string> = {}
+
+  api.parameters.forEach((parameter) => {
+    const value = resolveTestValue(parameter)
+    if (!value) {
+      return
+    }
+    const encodedName = encodeURIComponent(parameter.parameterName)
+    const encodedValue = encodeURIComponent(value)
+    switch (parameter.parameterLocation) {
+      case 'PATH':
+        url = url.replace(`{${parameter.parameterName}}`, encodedValue)
+        break
+      case 'QUERY':
+        queryItems.push(`${encodedName}=${encodedValue}`)
+        break
+      case 'HEADER':
+        headerItems[parameter.parameterName] = value
+        break
+      case 'BODY':
+        bodyItems[parameter.parameterName] = value
+        break
+      default:
+        break
+    }
+  })
+
+  if (queryItems.length > 0) {
+    url = `${url}${url.includes('?') ? '&' : '?'}${queryItems.join('&')}`
+  }
+  if (Object.keys(bodyItems).length > 0 && canSendBody(api.requestMethod)) {
+    headerItems['Content-Type'] = api.contentType || 'application/json'
+  }
+  headerItems['系统认证'] = '后端自动附加，前端不展示密钥'
+
+  return {
+    url: `${api.requestMethod} ${url}`,
+    headers: formatHeaderPreview(headerItems),
+    body: Object.keys(bodyItems).length > 0 && canSendBody(api.requestMethod) ? JSON.stringify(bodyItems, null, 2) : '-'
+  }
+}
+
+// 测试值为空时沿用参数默认值，预览结果与后端执行规则保持一致。
+function resolveTestValue(parameter: BusinessApiParameterItem) {
+  const value = testValues[parameter.parameterName]
+  return value === undefined || value === '' ? parameter.defaultValue || '' : value
+}
+
+// GET 和 DELETE 请求不展示 Body，保持与后端实际发送规则一致。
+function canSendBody(method: string) {
+  return !['GET', 'DELETE'].includes(method)
+}
+
+// Header 预览使用多行文本，避免表格内长 Header 造成布局抖动。
+function formatHeaderPreview(headers: Record<string, string>) {
+  const entries = Object.entries(headers)
+  return entries.length === 0 ? '-' : entries.map(([key, value]) => `${key}: ${value}`).join('\n')
+}
+
 // 在线测试参数表统一展示必填状态，避免直接暴露数字标识。
 function formatRequired(required: number) {
   return required === 1 ? '是' : '否'
@@ -613,14 +709,30 @@ function formatResult(value: unknown) {
   return JSON.stringify(value, null, 2)
 }
 
+// 原始响应是字符串，优先按 JSON 格式化，非 JSON 内容原样显示。
+function formatResponseBody(body: string | null | undefined) {
+  if (!body) {
+    return '-'
+  }
+  try {
+    return JSON.stringify(JSON.parse(body), null, 2)
+  } catch {
+    return body
+  }
+}
+
 // 后端 LocalDateTime 可能带 T，这里统一展示为空格分隔。
 function formatDateTime(value: string | null) {
   return value ? value.replace('T', ' ') : '-'
 }
 
+// 将接口错误统一转成文案，弹窗内失败详情和全局提示共用同一套规则。
+function getErrorMessage(error: unknown, fallback = '操作失败') {
+  return error instanceof Error && error.message ? error.message : fallback
+}
+
 // 统一展示接口错误，优先使用后端返回消息。
 function showError(error: unknown, fallback = '操作失败') {
-  const message = error instanceof Error ? error.message : fallback
-  ElMessage.error(message)
+  ElMessage.error(getErrorMessage(error, fallback))
 }
 </script>
