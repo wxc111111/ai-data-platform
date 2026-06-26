@@ -7,6 +7,7 @@ import NoPermissionView from '@/views/NoPermissionView.vue'
 import PermissionManageView from '@/views/PermissionManageView.vue'
 import RoleManageView from '@/views/RoleManageView.vue'
 import UserManageView from '@/views/UserManageView.vue'
+import BusinessSystemView from '@/views/BusinessSystemView.vue'
 import LoginLogView from '@/views/LoginLogView.vue'
 import OperationLogView from '@/views/OperationLogView.vue'
 
@@ -58,6 +59,14 @@ export const router = createRouter({
           component: PermissionManageView,
           meta: {
             permission: 'system:permission:menu'
+          }
+        },
+        {
+          path: 'business-systems',
+          name: 'business-systems',
+          component: BusinessSystemView,
+          meta: {
+            permission: 'system:business-system:menu'
           }
         },
         {

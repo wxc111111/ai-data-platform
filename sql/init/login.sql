@@ -60,7 +60,9 @@ INSERT INTO sys_permission (
     created_time,
     updated_time
 ) VALUES
+      (800, 0, '首页', NULL, 'MENU', '/home/overview', 'views/DashboardHomeView.vue', 'House', 800, 1, NOW(), NOW()),
       (900, 0, '系统管理', 'system:manage', 'MENU', NULL, NULL, 'Setting', 900, 1, NOW(), NOW()),
+      (950, 0, '数据接入', NULL, 'MENU', NULL, NULL, 'Database', 950, 1, NOW(), NOW()),
       (1000, 900, '用户管理', 'system:user:menu', 'MENU', '/home/users', 'views/UserManageView.vue', 'User', 1000, 1, NOW(), NOW()),
       (1001, 1000, '用户列表', 'system:user:list', 'API', NULL, NULL, NULL, 1001, 1, NOW(), NOW()),
       (1002, 1000, '新增用户', 'system:user:add', 'API', NULL, NULL, NULL, 1002, 1, NOW(), NOW()),
@@ -76,6 +78,15 @@ INSERT INTO sys_permission (
       (1152, 1150, '新增权限', 'system:permission:add', 'API', NULL, NULL, NULL, 1152, 1, NOW(), NOW()),
       (1153, 1150, '更新权限', 'system:permission:update', 'API', NULL, NULL, NULL, 1153, 1, NOW(), NOW()),
       (1154, 1150, '删除权限', 'system:permission:delete', 'API', NULL, NULL, NULL, 1154, 1, NOW(), NOW()),
+      (1160, 950, '业务系统管理', 'system:business-system:menu', 'MENU', '/home/business-systems', 'views/BusinessSystemView.vue', 'Connection', 1160, 1, NOW(), NOW()),
+      (1161, 1160, '业务系统列表', 'system:business-system:list', 'API', NULL, NULL, NULL, 1161, 1, NOW(), NOW()),
+      (1162, 1160, '新增业务系统', 'system:business-system:add', 'API', NULL, NULL, NULL, 1162, 1, NOW(), NOW()),
+      (1163, 1160, '更新业务系统', 'system:business-system:update', 'API', NULL, NULL, NULL, 1163, 1, NOW(), NOW()),
+      (1164, 1160, '删除业务系统', 'system:business-system:delete', 'API', NULL, NULL, NULL, 1164, 1, NOW(), NOW()),
+      (1200, 900, '登录日志', 'system:login-log:menu', 'MENU', '/home/login-logs', 'views/LoginLogView.vue', 'Document', 1200, 1, NOW(), NOW()),
+      (1201, 1200, '登录日志查询', 'system:login-log:list', 'API', NULL, NULL, NULL, 1201, 1, NOW(), NOW()),
+      (1210, 900, '操作日志', 'system:operation-log:menu', 'MENU', '/home/operation-logs', 'views/OperationLogView.vue', 'Tickets', 1210, 1, NOW(), NOW()),
+      (1211, 1210, '操作日志查询', 'system:operation-log:list', 'API', NULL, NULL, NULL, 1211, 1, NOW(), NOW());
 
 INSERT INTO sys_user_role (
     user_id,

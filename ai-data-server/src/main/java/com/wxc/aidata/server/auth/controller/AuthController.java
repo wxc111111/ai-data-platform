@@ -7,6 +7,8 @@ import com.wxc.aidata.server.auth.model.LoginSession;
 import com.wxc.aidata.server.auth.model.LoginUser;
 import com.wxc.aidata.server.auth.request.LoginRequest;
 import com.wxc.aidata.server.auth.service.AuthService;
+import com.wxc.aidata.server.permission.response.PermissionTreeResponse;
+import com.wxc.aidata.server.permission.service.CurrentUserMenuService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,12 +26,14 @@ import java.util.List;
 public class AuthController {
 
     private final AuthService authService;
+    private final CurrentUserMenuService currentUserMenuService;
 
     /**
-     * 注入登录认证服务。
+     * 注入登录认证服务和当前用户菜单服务。
      */
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, CurrentUserMenuService currentUserMenuService) {
         this.authService = authService;
+        this.currentUserMenuService = currentUserMenuService;
     }
 
     /**
@@ -68,5 +72,13 @@ public class AuthController {
     @GetMapping("/permissions")
     public Result<List<String>> permissions() {
         return Result.success(authService.currentPermissions());
+    }
+
+    /**
+     * 当前菜单接口，返回当前登录用户可见的后端菜单树。
+     */
+    @GetMapping("/menus")
+    public Result<List<PermissionTreeResponse>> menus() {
+        return Result.success(currentUserMenuService.currentMenus());
     }
 }

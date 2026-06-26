@@ -67,8 +67,10 @@ ai-data-platform
 - 用户管理：分页查询、详情、新增、更新、启停、删除、分配角色。
 - 角色管理：分页查询、详情、新增、更新、启停、删除、分配权限、角色下拉选项。
 - 权限管理：权限树、详情、新增、更新、启停、删除。
+- 业务系统管理：分页查询、详情、新增、更新、启停、删除、认证配置维护。
+- 登录日志和操作日志：记录登录结果、后台接口操作并提供分页查询页面。
 - `admin` 超级管理员默认拥有全部启用权限。
-- Vue 后台登录页、后台布局、首页概览、用户管理、角色管理、权限管理、无权限页。
+- Vue 后台登录页、后台布局、首页概览、用户管理、角色管理、权限管理、业务系统、审计日志、无权限页。
 - 前端登录状态、路由守卫和菜单权限控制。
 - 后端单元测试覆盖认证、用户、角色、权限、缓存、ID 生成器和异常处理等核心逻辑。
 
@@ -80,7 +82,7 @@ ai-data-platform
 - 定时任务：`sync_job_config`、`sync_job_log`
 - 调用与审计日志：`ai_skill_execution_log`、`sys_login_log`、`sys_operation_log`
 
-这些预留表对应的业务接口和前端页面尚未全部实现。
+业务系统和审计日志已提供基础管理页面，其余预留表对应的业务接口和前端页面尚未全部实现。
 
 ## 核心接口
 
@@ -130,6 +132,24 @@ PUT    /api/permissions/{id}/status
 DELETE /api/permissions/{id}
 ```
 
+业务系统管理：
+
+```http
+GET    /api/business-systems
+GET    /api/business-systems/{id}
+POST   /api/business-systems
+PUT    /api/business-systems/{id}
+PUT    /api/business-systems/{id}/status
+DELETE /api/business-systems/{id}
+```
+
+审计日志：
+
+```http
+GET /api/audit/login-logs
+GET /api/audit/operation-logs
+```
+
 ## 本地配置
 
 后端默认使用 `local` 环境，并从以下位置读取本地配置：
@@ -172,6 +192,8 @@ mysql -u root -p ai_data_platform < sql/init/login.sql
 
 ```bash
 mysql -u root -p ai_data_platform < sql/update/20260625-system-menu-permissions.sql
+mysql -u root -p ai_data_platform < sql/update/20260626-audit-log-permissions.sql
+mysql -u root -p ai_data_platform < sql/update/20260626-business-system-permissions.sql
 ```
 
 默认开发账号：
@@ -303,10 +325,8 @@ log.error("调用第三方接口失败，apiCode={}", apiCode, e);
 
 ## 后续建设
 
-- 业务系统配置管理。
 - 业务接口配置和在线测试。
 - Skill 配置、发布、鉴权和调用日志。
 - XXL-JOB 定时任务接入和执行日志。
-- 登录日志、操作日志和审计查询。
 - 网关统一鉴权、限流和请求追踪。
 - 生产部署文档和配置安全加固。
