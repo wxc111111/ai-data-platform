@@ -1,5 +1,6 @@
 import { createApp } from 'vue'
 import ElementPlus from 'element-plus'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import 'element-plus/dist/index.css'
 import './styles/main.scss'
 import App from './App.vue'
@@ -9,5 +10,7 @@ import { pinia } from './stores'
 createApp(App)
   .use(pinia)
   .use(router)
-  .use(ElementPlus)
+  .use(ElementPlus, {
+    locale: zhCn
+  })
   .mount('#app')

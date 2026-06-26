@@ -1,6 +1,7 @@
 package com.wxc.aidata.server.common.handler;
 
 import cn.dev33.satoken.exception.NotLoginException;
+import cn.dev33.satoken.exception.NotPermissionException;
 import com.wxc.aidata.common.exception.BusinessException;
 import com.wxc.aidata.common.response.Result;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -23,5 +24,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NotLoginException.class)
     public Result<Void> handleNotLoginException(NotLoginException exception) {
         return Result.failure(10002, "登录已失效");
+    }
+
+    /**
+     * 处理 Sa-Token 无权限异常，避免接口返回默认异常堆栈。
+     */
+    @ExceptionHandler(NotPermissionException.class)
+    public Result<Void> handleNotPermissionException(NotPermissionException exception) {
+        return Result.failure(10003, "无权限访问");
     }
 }

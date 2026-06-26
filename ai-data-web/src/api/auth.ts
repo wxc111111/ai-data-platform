@@ -1,7 +1,7 @@
 import { http, type ApiResult } from './http'
 
 export interface LoginUser {
-  id: number
+  id: string
   username: string
   nickname: string
 }

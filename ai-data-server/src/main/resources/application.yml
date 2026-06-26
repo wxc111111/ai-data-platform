@@ -1,5 +1,5 @@
 server:
-  port: 8081
+  port: 7071
 
 spring:
   application:
@@ -27,6 +27,11 @@ mybatis:
   mapper-locations: classpath*:mapper/**/*.xml
   configuration:
     map-underscore-to-camel-case: true
+
+pagehelper:
+  helper-dialect: mysql
+  reasonable: false
+  support-methods-arguments: false
 
 sa-token:
   token-name: Authorization

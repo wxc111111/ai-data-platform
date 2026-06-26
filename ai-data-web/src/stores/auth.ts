@@ -18,7 +18,10 @@ export const useAuthStore = defineStore('auth', {
     permissions: readJson<string[]>('ai-data-permissions') || []
   }),
   getters: {
-    isLoggedIn: (state) => Boolean(state.tokenValue)
+    isLoggedIn: (state) => Boolean(state.tokenValue),
+    hasPermission: (state) => {
+      return (permission: string) => state.permissions.includes(permission)
+    }
   },
   actions: {
     async login(username: string, password: string) {
