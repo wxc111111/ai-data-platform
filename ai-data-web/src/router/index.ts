@@ -9,6 +9,7 @@ import RoleManageView from '@/views/RoleManageView.vue'
 import UserManageView from '@/views/UserManageView.vue'
 import BusinessSystemView from '@/views/BusinessSystemView.vue'
 import BusinessApiView from '@/views/BusinessApiView.vue'
+import SkillView from '@/views/SkillView.vue'
 import LoginLogView from '@/views/LoginLogView.vue'
 import OperationLogView from '@/views/OperationLogView.vue'
 
@@ -76,6 +77,14 @@ export const router = createRouter({
           component: BusinessApiView,
           meta: {
             permission: 'system:business-api:menu'
+          }
+        },
+        {
+          path: 'skills',
+          name: 'skills',
+          component: SkillView,
+          meta: {
+            permission: 'system:skill:list-menu'
           }
         },
         {

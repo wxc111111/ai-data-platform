@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wxc.aidata.server.skill.mapper.SkillParameterMapper">
+
+    <!-- 查询 Skill 参数映射，按 sort_no 和 id 保持稳定顺序。 -->
+    <select id="findBySkillId" resultType="com.wxc.aidata.server.skill.entity.AiSkillParameter">
+        SELECT *
+        FROM ai_skill_parameter
+        WHERE skill_id = #{skillId}
+        ORDER BY sort_no ASC, id ASC
+    </select>
+
+    <!-- 覆盖保存参数映射前先删除旧配置。 -->
+    <delete id="deleteBySkillId">
+        DELETE FROM ai_skill_parameter
+        WHERE skill_id = #{skillId}
+    </delete>
+</mapper>

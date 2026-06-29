@@ -147,11 +147,13 @@ mysql -u root -p ai_data_platform < sql/update/20260625-system-menu-permissions.
 mysql -u root -p ai_data_platform < sql/update/20260626-audit-log-permissions.sql
 mysql -u root -p ai_data_platform < sql/update/20260626-business-system-permissions.sql
 mysql -u root -p ai_data_platform < sql/update/20260626-business-api-permissions.sql
+mysql -u root -p ai_data_platform < sql/update/20260626-skill-permissions.sql
 mysql -u root -p ai_data_platform < sql/update/20260626-current-user-menus.sql
 ```
 
 `20260626-business-system-permissions.sql` 会创建“数据接入”和“业务系统管理”菜单。
 `20260626-business-api-permissions.sql` 会创建“业务接口管理”菜单、按钮权限和在线测试权限。
+`20260626-skill-permissions.sql` 会创建一级“Skill 管理”模块、“Skill 列表”菜单、按钮权限和在线测试权限。
 `20260626-current-user-menus.sql` 会补齐“首页”“数据接入”公共菜单，并将“业务系统管理”挂到“数据接入”分组下。
 
 ### 本地启动

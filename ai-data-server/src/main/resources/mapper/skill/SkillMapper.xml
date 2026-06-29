@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wxc.aidata.server.skill.mapper.SkillMapper">
+
+    <resultMap id="SkillRowMap" type="com.wxc.aidata.server.skill.mapper.SkillMapper$SkillRow">
+        <constructor>
+            <arg column="id" javaType="java.lang.Long"/>
+            <arg column="skill_code" javaType="java.lang.String"/>
+            <arg column="skill_name" javaType="java.lang.String"/>
+            <arg column="description" javaType="java.lang.String"/>
+            <arg column="api_id" javaType="java.lang.Long"/>
+            <arg column="api_name" javaType="java.lang.String"/>
+            <arg column="api_code" javaType="java.lang.String"/>
+            <arg column="permission_code" javaType="java.lang.String"/>
+            <arg column="timeout_ms" javaType="java.lang.Integer"/>
+            <arg column="max_result_count" javaType="java.lang.Integer"/>
+            <arg column="status" javaType="java.lang.Integer"/>
+            <arg column="version_no" javaType="java.lang.Integer"/>
+            <arg column="created_time" javaType="java.time.LocalDateTime"/>
+            <arg column="updated_time" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <!-- Skill 列表需要展示关联业务接口，因此关联 biz_api 查询接口名称和编码。 -->
+    <select id="findSkills" resultMap="SkillRowMap">
+        SELECT
+            s.id,
+            s.skill_code,
+            s.skill_name,
+            s.description,
+            s.api_id,
+            a.api_name,
+            a.api_code,
+            s.permission_code,
+            s.timeout_ms,
+            s.max_result_count,
+            s.status,
+            s.version_no,
+            s.created_time,
+            s.updated_time
+        FROM ai_skill s
+        INNER JOIN biz_api a ON a.id = s.api_id
+        <where>
+            <if test="query.skillName != null and query.skillName != ''">
+                AND s.skill_name LIKE CONCAT('%', #{query.skillName}, '%')
+            </if>
+            <if test="query.skillCode != null and query.skillCode != ''">
+                AND s.skill_code LIKE CONCAT('%', #{query.skillCode}, '%')
+            </if>
+            <if test="query.status != null">
+                AND s.status = #{query.status}
+            </if>
+        </where>
+        ORDER BY s.updated_time DESC, s.id DESC
+    </select>
+
+    <!-- Skill 编码全局唯一，用于新增校验。 -->
+    <select id="existsBySkillCode" resultType="boolean">
+        SELECT COUNT(1) > 0
+        FROM ai_skill
+        WHERE skill_code = #{skillCode}
+    </select>
+
+    <!-- Skill 编码全局唯一，用于编辑校验。 -->
+    <select id="existsBySkillCodeExcludeId" resultType="boolean">
+        SELECT COUNT(1) > 0
+        FROM ai_skill
+        WHERE skill_code = #{skillCode}
+          AND id != #{id}
+    </select>
+</mapper>
