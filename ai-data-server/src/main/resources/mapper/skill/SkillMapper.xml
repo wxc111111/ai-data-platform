@@ -57,22 +57,21 @@
                 AND s.status = #{query.status}
             </if>
             <if test="query.admin == false">
-                <choose>
-                    <when test="query.roleIds != null and query.roleIds.size() > 0">
-                        AND EXISTS (
-                            SELECT 1
-                            FROM ai_skill_role asr
-                            WHERE asr.skill_id = s.id
-                              AND asr.role_id IN
-                              <foreach collection="query.roleIds" item="roleId" open="(" separator="," close=")">
-                                  #{roleId}
-                              </foreach>
+                AND (
+                    s.visibility = 'PUBLIC'
+                    OR s.created_by = #{query.currentUserId}
+                    <if test="query.roleIds != null and query.roleIds.size() > 0">
+                        OR EXISTS (
+                        SELECT 1
+                        FROM ai_skill_role asr
+                        WHERE asr.skill_id = s.id
+                        AND asr.role_id IN
+                        <foreach collection="query.roleIds" item="roleId" open="(" separator="," close=")">
+                            #{roleId}
+                        </foreach>
                         )
-                    </when>
-                    <otherwise>
-                        AND 1 = 0
-                    </otherwise>
-                </choose>
+                    </if>
+                )
             </if>
         </where>
         ORDER BY s.updated_time DESC, s.id DESC

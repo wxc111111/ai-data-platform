@@ -98,7 +98,7 @@
           <el-input v-model="skillForm.permissionCode" placeholder="可选，例如 skill:query-user" />
         </el-form-item>
         <el-form-item label="Skill 类型">
-          <el-select v-model="skillForm.visibility" class="full-select">
+          <el-select v-model="skillForm.visibility" class="full-select" @change="handleVisibilityChange">
             <el-option v-for="option in visibilityOptions" :key="option.value" :label="option.label" :value="option.value" />
           </el-select>
         </el-form-item>
@@ -112,10 +112,11 @@
           <el-select
             v-model="skillForm.roleIds"
             class="full-select"
+            :disabled="skillForm.visibility === 'PUBLIC'"
             multiple
             collapse-tags
             collapse-tags-tooltip
-            placeholder="不选择则仅管理员可见"
+            :placeholder="skillForm.visibility === 'PUBLIC' ? '公共 Skill 对有权限用户可见' : '不选择则仅创建人和管理员可见'"
           >
             <el-option v-for="role in roles" :key="role.id" :label="role.roleName" :value="role.id" />
           </el-select>
@@ -382,6 +383,13 @@ function resetQuery() {
   void loadSkills()
 }
 
+// 公共 Skill 不使用角色范围；私有 Skill 才按创建人、admin 和可见角色控制。
+function handleVisibilityChange() {
+  if (skillForm.visibility === 'PUBLIC') {
+    skillForm.roleIds = []
+  }
+}
+
 function openCreateDialog() {
   editingSkill.value = null
   resetForm()
@@ -562,6 +570,7 @@ function normalizePayload(): SkillPayload {
   return {
     ...skillForm,
     permissionCode: skillForm.permissionCode || null,
+    roleIds: skillForm.visibility === 'PUBLIC' ? [] : skillForm.roleIds,
     parameters: skillForm.parameters
       .filter((parameter) => parameter.parameterName.trim())
       .map((parameter, index) => ({

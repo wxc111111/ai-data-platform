@@ -12,17 +12,18 @@ public record SkillPageQuery(
         String skillCode,
         Integer status,
         List<Long> roleIds,
+        Long currentUserId,
         Boolean admin) {
 
     public SkillPageQuery(Integer pageNo, Integer pageSize, String skillName, String skillCode, Integer status) {
-        this(pageNo, pageSize, skillName, skillCode, status, List.of(), false);
+        this(pageNo, pageSize, skillName, skillCode, status, List.of(), null, false);
     }
 
     /**
-     * 补充当前用户角色范围，普通用户只能看到命中角色范围的 Skill。
+     * 补充当前用户范围，普通用户可见公共 Skill、自己创建的私有 Skill 和命中角色范围的私有 Skill。
      */
-    public SkillPageQuery withAccessScope(List<Long> roleIds, boolean admin) {
-        return new SkillPageQuery(pageNo, pageSize, skillName, skillCode, status, roleIds == null ? List.of() : roleIds, admin);
+    public SkillPageQuery withAccessScope(Long currentUserId, List<Long> roleIds, boolean admin) {
+        return new SkillPageQuery(pageNo, pageSize, skillName, skillCode, status, roleIds == null ? List.of() : roleIds, currentUserId, admin);
     }
 
     public int normalizedPageNo() {

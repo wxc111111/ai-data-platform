@@ -73,7 +73,11 @@ public class SkillServiceImpl implements SkillService {
     @Override
     public PageResult<SkillResponse> pageSkills(SkillPageQuery query) {
         SkillPageQuery safeQuery = query == null ? new SkillPageQuery(1, 10, null, null, null) : query;
-        SkillPageQuery scopedQuery = safeQuery.withAccessScope(currentUserAccessService.currentRoleIds(), currentUserAccessService.currentUserIsAdmin());
+        SkillPageQuery scopedQuery = safeQuery.withAccessScope(
+                currentUserAccessService.currentUserId(),
+                currentUserAccessService.currentRoleIds(),
+                currentUserAccessService.currentUserIsAdmin()
+        );
         PageHelper.startPage(scopedQuery.normalizedPageNo(), scopedQuery.normalizedPageSize());
         List<SkillMapper.SkillRow> rows = skillMapper.findSkills(scopedQuery);
         PageInfo<SkillMapper.SkillRow> pageInfo = new PageInfo<>(rows);
@@ -274,10 +278,27 @@ public class SkillServiceImpl implements SkillService {
      */
     private AiSkill getAccessibleSkillOrThrow(Long id) {
         AiSkill skill = getSkillOrThrow(id);
-        if (!currentUserAccessService.canAccessResource(skillMapper.findRoleIdsBySkillId(id))) {
+        if (!canAccessSkill(skill, skillMapper.findRoleIdsBySkillId(id))) {
             throw new BusinessException(SKILL_ERROR_CODE, "无权访问该 Skill");
         }
         return skill;
+    }
+
+    /**
+     * 判断当前用户是否能访问 Skill：公共 Skill 放行；私有 Skill 允许 admin、创建人和命中角色范围的用户访问。
+     */
+    private boolean canAccessSkill(AiSkill skill, List<Long> roleIds) {
+        if (currentUserAccessService.currentUserIsAdmin()) {
+            return true;
+        }
+        if ("PUBLIC".equalsIgnoreCase(skill.getVisibility())) {
+            return true;
+        }
+        Long currentUserId = currentUserAccessService.currentUserId();
+        if (currentUserId != null && currentUserId.equals(skill.getCreatedBy())) {
+            return true;
+        }
+        return currentUserAccessService.canAccessResource(roleIds);
     }
 
     /**
