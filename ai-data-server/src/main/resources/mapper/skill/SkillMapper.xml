@@ -12,11 +12,14 @@
             <arg column="api_name" javaType="java.lang.String"/>
             <arg column="api_code" javaType="java.lang.String"/>
             <arg column="permission_code" javaType="java.lang.String"/>
+            <arg column="visibility" javaType="java.lang.String"/>
             <arg column="timeout_ms" javaType="java.lang.Integer"/>
             <arg column="max_result_count" javaType="java.lang.Integer"/>
             <arg column="status" javaType="java.lang.Integer"/>
             <arg column="version_no" javaType="java.lang.Integer"/>
+            <arg column="created_by" javaType="java.lang.Long"/>
             <arg column="created_time" javaType="java.time.LocalDateTime"/>
+            <arg column="updated_by" javaType="java.lang.Long"/>
             <arg column="updated_time" javaType="java.time.LocalDateTime"/>
         </constructor>
     </resultMap>
@@ -32,11 +35,14 @@
             a.api_name,
             a.api_code,
             s.permission_code,
+            s.visibility,
             s.timeout_ms,
             s.max_result_count,
             s.status,
             s.version_no,
+            s.created_by,
             s.created_time,
+            s.updated_by,
             s.updated_time
         FROM ai_skill s
         INNER JOIN biz_api a ON a.id = s.api_id
@@ -49,6 +55,24 @@
             </if>
             <if test="query.status != null">
                 AND s.status = #{query.status}
+            </if>
+            <if test="query.admin == false">
+                <choose>
+                    <when test="query.roleIds != null and query.roleIds.size() > 0">
+                        AND EXISTS (
+                            SELECT 1
+                            FROM ai_skill_role asr
+                            WHERE asr.skill_id = s.id
+                              AND asr.role_id IN
+                              <foreach collection="query.roleIds" item="roleId" open="(" separator="," close=")">
+                                  #{roleId}
+                              </foreach>
+                        )
+                    </when>
+                    <otherwise>
+                        AND 1 = 0
+                    </otherwise>
+                </choose>
             </if>
         </where>
         ORDER BY s.updated_time DESC, s.id DESC
@@ -68,4 +92,27 @@
         WHERE skill_code = #{skillCode}
           AND id != #{id}
     </select>
+
+    <!-- 查询 Skill 可见角色。 -->
+    <select id="findRoleIdsBySkillId" resultType="java.lang.Long">
+        SELECT role_id
+        FROM ai_skill_role
+        WHERE skill_id = #{skillId}
+        ORDER BY role_id
+    </select>
+
+    <!-- 删除 Skill 旧角色范围。 -->
+    <delete id="deleteRolesBySkillId">
+        DELETE FROM ai_skill_role
+        WHERE skill_id = #{skillId}
+    </delete>
+
+    <!-- 保存 Skill 角色范围，roleIds 为空时由服务层跳过。 -->
+    <insert id="insertSkillRoles">
+        INSERT INTO ai_skill_role (skill_id, role_id)
+        VALUES
+        <foreach collection="roleIds" item="roleId" separator=",">
+            (#{skillId}, #{roleId})
+        </foreach>
+    </insert>
 </mapper>

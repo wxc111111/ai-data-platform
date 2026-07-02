@@ -31,10 +31,18 @@
         </template>
       </el-table-column>
       <el-table-column prop="description" label="能力说明" min-width="260" show-overflow-tooltip />
+      <el-table-column label="Skill 类型" width="110">
+        <template #default="{ row }">
+          <el-tag :type="row.visibility === 'PUBLIC' ? 'success' : 'info'">{{ visibilityLabel(row.visibility) }}</el-tag>
+        </template>
+      </el-table-column>
       <el-table-column label="状态" width="96">
         <template #default="{ row }">
           <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ row.status === 1 ? '启用' : '禁用' }}</el-tag>
         </template>
+      </el-table-column>
+      <el-table-column label="可见角色" min-width="180" show-overflow-tooltip>
+        <template #default="{ row }">{{ roleNames(row.roleIds) }}</template>
       </el-table-column>
       <el-table-column label="更新时间" width="180">
         <template #default="{ row }">{{ formatDateTime(row.updatedTime) }}</template>
@@ -79,7 +87,7 @@
           <el-input v-model="skillForm.skillCode" placeholder="query_user_info" />
         </el-form-item>
         <el-form-item label="关联接口" prop="apiId">
-          <el-select v-model="skillForm.apiId" class="full-select" filterable @change="syncApiParameters">
+          <el-select v-model="skillForm.apiId" class="full-select" filterable @change="handleApiChange">
             <el-option v-for="api in apiOptions" :key="api.id" :label="`${api.apiName} (${api.apiCode})`" :value="api.id" />
           </el-select>
         </el-form-item>
@@ -89,11 +97,28 @@
         <el-form-item label="权限编码">
           <el-input v-model="skillForm.permissionCode" placeholder="可选，例如 skill:query-user" />
         </el-form-item>
+        <el-form-item label="Skill 类型">
+          <el-select v-model="skillForm.visibility" class="full-select">
+            <el-option v-for="option in visibilityOptions" :key="option.value" :label="option.label" :value="option.value" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="超时时间">
           <el-input-number v-model="skillForm.timeoutMs" :min="1" :max="300000" :step="1000" controls-position="right" />
         </el-form-item>
         <el-form-item label="最大返回数">
           <el-input-number v-model="skillForm.maxResultCount" :min="1" :max="10000" controls-position="right" />
+        </el-form-item>
+        <el-form-item label="可见角色">
+          <el-select
+            v-model="skillForm.roleIds"
+            class="full-select"
+            multiple
+            collapse-tags
+            collapse-tags-tooltip
+            placeholder="不选择则仅管理员可见"
+          >
+            <el-option v-for="role in roles" :key="role.id" :label="role.roleName" :value="role.id" />
+          </el-select>
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-switch v-model="skillForm.status" :active-value="1" :inactive-value="0" />
@@ -102,10 +127,10 @@
 
       <section class="parameter-toolbar">
         <strong>参数映射</strong>
-        <el-button :icon="Plus" @click="addParameter">新增参数</el-button>
+        <el-button :icon="Refresh" :disabled="!skillForm.apiId" :loading="syncingParameters" @click="syncApiParameters">同步接口参数</el-button>
       </section>
       <el-table :data="skillForm.parameters" border row-key="sortNo">
-        <el-table-column label="Skill 参数" min-width="140">
+        <el-table-column label="对外参数" min-width="140">
           <template #default="{ row }"><el-input v-model="row.parameterName" /></template>
         </el-table-column>
         <el-table-column label="类型" width="130">
@@ -236,16 +261,20 @@ import {
   type SkillPayload
 } from '@/api/skills'
 import type { BusinessApiTestResponse } from '@/api/business-apis'
+import { fetchRoleOptions, type RoleOption } from '@/api/roles'
 import { useAuthStore } from '@/stores/auth'
 
 const loading = ref(false)
 const submitting = ref(false)
 const testing = ref(false)
+const syncingParameters = ref(false)
 const dialogVisible = ref(false)
 const testDialogVisible = ref(false)
 const skills = ref<SkillItem[]>([])
 const total = ref(0)
 const apiOptions = ref<BusinessApiItem[]>([])
+const roles = ref<RoleOption[]>([])
+const selectedApiDetail = ref<BusinessApiItem | null>(null)
 const editingSkill = ref<SkillItem | null>(null)
 const testingSkill = ref<SkillItem | null>(null)
 const testResult = ref<BusinessApiTestResponse | null>(null)
@@ -254,6 +283,10 @@ const formRef = ref<FormInstance>()
 const authStore = useAuthStore()
 
 const parameterTypes = ['STRING', 'INTEGER', 'LONG', 'DECIMAL', 'BOOLEAN', 'DATE', 'DATETIME', 'ARRAY', 'OBJECT']
+const visibilityOptions: Array<{ label: string; value: SkillPayload['visibility'] }> = [
+  { label: '私有', value: 'PRIVATE' },
+  { label: '公共', value: 'PUBLIC' }
+]
 
 const query = reactive({
   pageNo: 1,
@@ -269,9 +302,11 @@ const skillForm = reactive<SkillPayload>({
   description: '',
   apiId: '',
   permissionCode: '',
+  visibility: 'PRIVATE',
   timeoutMs: 10000,
   maxResultCount: 100,
   status: 1,
+  roleIds: [],
   parameters: []
 })
 
@@ -285,13 +320,24 @@ const rules: FormRules = {
 }
 
 const selectedApiParameters = computed(() => {
-  return apiOptions.value.find((api) => api.id === skillForm.apiId)?.parameters || []
+  const selectedApi = selectedApiDetail.value?.id === skillForm.apiId ? selectedApiDetail.value : apiOptions.value.find((api) => api.id === skillForm.apiId)
+  return selectedApi?.parameters || []
 })
 
 onMounted(() => {
   void loadApiOptions()
+  void loadRoleOptions()
   void loadSkills()
 })
+
+// 加载可选角色，用于配置 Skill 的数据可见范围。
+async function loadRoleOptions() {
+  try {
+    roles.value = await fetchRoleOptions()
+  } catch (error) {
+    showError(error, '加载角色选项失败')
+  }
+}
 
 // 加载可关联的业务接口，Skill 第一版只绑定一个已启用接口。
 async function loadApiOptions() {
@@ -352,11 +398,14 @@ async function openEditDialog(skill: SkillItem) {
       description: detail.description,
       apiId: detail.apiId,
       permissionCode: detail.permissionCode || '',
+      visibility: detail.visibility || 'PRIVATE',
       timeoutMs: detail.timeoutMs,
       maxResultCount: detail.maxResultCount,
       status: detail.status,
+      roleIds: detail.roleIds || [],
       parameters: detail.parameters.map(copyParameter)
     })
+    void loadSelectedApiDetail(detail.apiId)
     dialogVisible.value = true
   } catch (error) {
     showError(error, '加载 Skill 详情失败')
@@ -411,24 +460,21 @@ async function removeSkill(skill: SkillItem) {
   }
 }
 
-function addParameter() {
-  skillForm.parameters.push({
-    parameterName: '',
-    parameterType: 'STRING',
-    required: 0,
-    description: '',
-    apiParameterName: '',
-    defaultValue: '',
-    valueSource: 'CALLER',
-    sortNo: skillForm.parameters.length + 1
-  })
-}
-
 function removeParameter(index: number) {
   skillForm.parameters.splice(index, 1)
   skillForm.parameters.forEach((parameter, parameterIndex) => {
     parameter.sortNo = parameterIndex + 1
   })
+}
+
+// 切换关联接口时自动按接口定义重建参数映射，主流程不再手工新增参数。
+async function handleApiChange() {
+  if (!skillForm.apiId) {
+    selectedApiDetail.value = null
+    skillForm.parameters = []
+    return
+  }
+  await syncApiParameters()
 }
 
 // 选择业务接口后按接口参数生成默认 Skill 参数映射，减少重复录入。
@@ -437,21 +483,30 @@ async function syncApiParameters() {
   if (!api) {
     return
   }
-  const detail = api.parameters.length > 0 ? api : await fetchBusinessApiDetail(api.id)
-  skillForm.parameters = detail.parameters.map((parameter, index) => ({
-    parameterName: parameter.parameterName,
-    parameterType: parameter.parameterType,
-    required: parameter.required,
-    description: parameter.description || '',
-    apiParameterName: parameter.parameterName,
-    defaultValue: parameter.defaultValue || '',
-    valueSource: 'CALLER',
-    sortNo: index + 1
-  }))
+  syncingParameters.value = true
+  try {
+    const detail = await loadSelectedApiDetail(api.id)
+    skillForm.parameters = detail.parameters.map((parameter, index) => ({
+      parameterName: parameter.parameterName,
+      parameterType: parameter.parameterType,
+      required: parameter.required,
+      description: parameter.description || '',
+      apiParameterName: parameter.parameterName,
+      defaultValue: parameter.defaultValue || '',
+      valueSource: 'CALLER',
+      sortNo: index + 1
+    }))
+  } catch (error) {
+    showError(error, '同步接口参数失败')
+  } finally {
+    syncingParameters.value = false
+  }
 }
 
-async function fetchBusinessApiDetail(id: string) {
-  return fetchBusinessApi(id)
+// 加载接口详情并缓存，保证接口参数下拉始终使用完整定义。
+async function loadSelectedApiDetail(id: string) {
+  selectedApiDetail.value = await fetchBusinessApi(id)
+  return selectedApiDetail.value
 }
 
 async function openTestDialog(skill: SkillItem) {
@@ -487,15 +542,18 @@ async function submitTest() {
 }
 
 function resetForm() {
+  selectedApiDetail.value = null
   Object.assign(skillForm, {
     skillCode: '',
     skillName: '',
     description: '',
     apiId: '',
     permissionCode: '',
+    visibility: 'PRIVATE',
     timeoutMs: 10000,
     maxResultCount: 100,
     status: 1,
+    roleIds: [],
     parameters: []
   })
 }
@@ -528,6 +586,20 @@ function copyParameter(parameter: SkillParameterItem): SkillParameterItem {
 
 function testPlaceholder(parameter: SkillParameterItem) {
   return parameter.valueSource === 'CONSTANT' ? '固定值由默认值提供' : `${parameter.parameterType}${parameter.required === 1 ? ' / 必填' : ''}`
+}
+
+// 将 Skill 类型编码转换成列表和表单使用的中文文案。
+function visibilityLabel(visibility: SkillPayload['visibility'] | undefined) {
+  return visibilityOptions.find((option) => option.value === visibility)?.label || '私有'
+}
+
+// 把角色 ID 展示成角色名称；未分配角色时只有管理员能查看。
+function roleNames(roleIds: string[] | undefined) {
+  if (!roleIds?.length) {
+    return '仅管理员'
+  }
+  const roleMap = new Map(roles.value.map((role) => [role.id, role.roleName]))
+  return roleIds.map((roleId) => roleMap.get(roleId) || roleId).join('、')
 }
 
 function formatResult(value: unknown) {

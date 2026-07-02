@@ -136,6 +136,7 @@ public class BusinessApiController {
                 request.responseDataPath(),
                 request.status(),
                 request.description(),
+                request.roleIds(),
                 toParameterCommands(request.parameters())
         );
     }
@@ -157,6 +158,7 @@ public class BusinessApiController {
                 request.responseDataPath(),
                 request.status(),
                 request.description(),
+                request.roleIds(),
                 toParameterCommands(request.parameters())
         );
     }

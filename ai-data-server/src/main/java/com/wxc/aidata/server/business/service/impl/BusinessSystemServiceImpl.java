@@ -12,9 +12,13 @@ import com.wxc.aidata.server.business.model.BusinessSystemUpdateCommand;
 import com.wxc.aidata.server.business.response.BusinessSystemResponse;
 import com.wxc.aidata.server.business.service.BusinessSystemService;
 import com.wxc.aidata.server.common.id.IdGenerator;
+import com.wxc.aidata.server.permission.service.CurrentUserAccessService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -33,13 +37,18 @@ public class BusinessSystemServiceImpl implements BusinessSystemService {
 
     private final BusinessSystemMapper businessSystemMapper;
     private final IdGenerator idGenerator;
+    private final CurrentUserAccessService currentUserAccessService;
 
     /**
      * 注入业务系统 Mapper 和 ID 生成器。
      */
-    public BusinessSystemServiceImpl(BusinessSystemMapper businessSystemMapper, IdGenerator idGenerator) {
+    public BusinessSystemServiceImpl(
+            BusinessSystemMapper businessSystemMapper,
+            IdGenerator idGenerator,
+            CurrentUserAccessService currentUserAccessService) {
         this.businessSystemMapper = businessSystemMapper;
         this.idGenerator = idGenerator;
+        this.currentUserAccessService = currentUserAccessService;
     }
 
     /**
@@ -48,11 +57,12 @@ public class BusinessSystemServiceImpl implements BusinessSystemService {
     @Override
     public PageResult<BusinessSystemResponse> pageBusinessSystems(BusinessSystemPageQuery query) {
         BusinessSystemPageQuery safeQuery = query == null ? new BusinessSystemPageQuery(1, 10, null, null, null) : query;
-        PageHelper.startPage(safeQuery.normalizedPageNo(), safeQuery.normalizedPageSize());
-        List<BizSystem> rows = businessSystemMapper.findBusinessSystems(safeQuery);
+        BusinessSystemPageQuery scopedQuery = safeQuery.withAccessScope(currentUserAccessService.currentRoleIds(), currentUserAccessService.currentUserIsAdmin());
+        PageHelper.startPage(scopedQuery.normalizedPageNo(), scopedQuery.normalizedPageSize());
+        List<BizSystem> rows = businessSystemMapper.findBusinessSystems(scopedQuery);
         PageInfo<BizSystem> pageInfo = new PageInfo<>(rows);
         List<BusinessSystemResponse> records = rows.stream().map(this::toResponse).toList();
-        return PageResult.of(pageInfo.getTotal(), safeQuery.normalizedPageNo(), safeQuery.normalizedPageSize(), records);
+        return PageResult.of(pageInfo.getTotal(), scopedQuery.normalizedPageNo(), scopedQuery.normalizedPageSize(), records);
     }
 
     /**
@@ -61,10 +71,7 @@ public class BusinessSystemServiceImpl implements BusinessSystemService {
     @Override
     public BusinessSystemResponse getBusinessSystem(Long id) {
         validateId(id);
-        BizSystem system = businessSystemMapper.selectById(id);
-        if (system == null) {
-            throw new BusinessException(BUSINESS_SYSTEM_ERROR_CODE, "业务系统不存在");
-        }
+        BizSystem system = getAccessibleSystemOrThrow(id);
         return toResponse(system);
     }
 
@@ -72,6 +79,7 @@ public class BusinessSystemServiceImpl implements BusinessSystemService {
      * 创建业务系统，简单新增使用 MyBatis-Plus insert 方法。
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void createBusinessSystem(BusinessSystemCreateCommand command) {
         validateCreateCommand(command);
         String systemCode = command.systemCode().trim();
@@ -80,8 +88,10 @@ public class BusinessSystemServiceImpl implements BusinessSystemService {
         }
 
         LocalDateTime now = LocalDateTime.now();
+        Long userId = currentUserAccessService.currentUserId();
+        Long systemId = idGenerator.nextId();
         BizSystem system = new BizSystem(
-                idGenerator.nextId(),
+                systemId,
                 systemCode,
                 command.systemName().trim(),
                 command.baseUrl().trim(),
@@ -91,10 +101,13 @@ public class BusinessSystemServiceImpl implements BusinessSystemService {
                 normalizeTimeout(command.readTimeout(), DEFAULT_READ_TIMEOUT, "读取超时时间必须大于 0"),
                 normalizeStatus(command.status()),
                 trimToNull(command.description()),
+                userId,
                 now,
+                userId,
                 now
         );
         businessSystemMapper.insert(system);
+        saveRoles(systemId, command.roleIds());
     }
 
     /**
@@ -106,10 +119,7 @@ public class BusinessSystemServiceImpl implements BusinessSystemService {
             throw new BusinessException(BUSINESS_SYSTEM_ERROR_CODE, "业务系统ID不能为空");
         }
         validateUpdateCommand(command);
-        BizSystem existing = businessSystemMapper.selectById(command.id());
-        if (existing == null) {
-            throw new BusinessException(BUSINESS_SYSTEM_ERROR_CODE, "业务系统不存在");
-        }
+        BizSystem existing = getAccessibleSystemOrThrow(command.id());
 
         String systemCode = command.systemCode().trim();
         if (businessSystemMapper.existsBySystemCodeExcludeId(systemCode, command.id())) {
@@ -127,13 +137,16 @@ public class BusinessSystemServiceImpl implements BusinessSystemService {
                 normalizeTimeout(command.readTimeout(), DEFAULT_READ_TIMEOUT, "读取超时时间必须大于 0"),
                 normalizeStatus(command.status()),
                 trimToNull(command.description()),
+                existing.getCreatedBy(),
                 existing.getCreatedTime(),
+                currentUserAccessService.currentUserId(),
                 LocalDateTime.now()
         );
         int updated = businessSystemMapper.updateById(system);
         if (updated == 0) {
             throw new BusinessException(BUSINESS_SYSTEM_ERROR_CODE, "业务系统不存在");
         }
+        saveRoles(command.id(), command.roleIds());
     }
 
     /**
@@ -142,11 +155,9 @@ public class BusinessSystemServiceImpl implements BusinessSystemService {
     @Override
     public void updateStatus(Long id, Integer status) {
         validateId(id);
-        BizSystem existing = businessSystemMapper.selectById(id);
-        if (existing == null) {
-            throw new BusinessException(BUSINESS_SYSTEM_ERROR_CODE, "业务系统不存在");
-        }
+        BizSystem existing = getAccessibleSystemOrThrow(id);
         existing.setStatus(normalizeStatus(status));
+        existing.setUpdatedBy(currentUserAccessService.currentUserId());
         existing.setUpdatedTime(LocalDateTime.now());
         int updated = businessSystemMapper.updateById(existing);
         if (updated == 0) {
@@ -159,11 +170,48 @@ public class BusinessSystemServiceImpl implements BusinessSystemService {
      */
     @Override
     public void deleteBusinessSystem(Long id) {
-        validateId(id);
+        getAccessibleSystemOrThrow(id);
+        businessSystemMapper.deleteRolesBySystemId(id);
         int deleted = businessSystemMapper.deleteById(id);
         if (deleted == 0) {
             throw new BusinessException(BUSINESS_SYSTEM_ERROR_CODE, "业务系统不存在");
         }
+    }
+
+    /**
+     * 查询业务系统并校验当前用户角色范围，避免绕过列表直接访问。
+     */
+    private BizSystem getAccessibleSystemOrThrow(Long id) {
+        validateId(id);
+        BizSystem system = businessSystemMapper.selectById(id);
+        if (system == null) {
+            throw new BusinessException(BUSINESS_SYSTEM_ERROR_CODE, "业务系统不存在");
+        }
+        if (!currentUserAccessService.canAccessResource(businessSystemMapper.findRoleIdsBySystemId(id))) {
+            throw new BusinessException(BUSINESS_SYSTEM_ERROR_CODE, "无权访问该业务系统");
+        }
+        return system;
+    }
+
+    /**
+     * 覆盖保存业务系统角色范围，空角色列表表示仅 admin 可见。
+     */
+    private void saveRoles(Long systemId, List<Long> roleIds) {
+        businessSystemMapper.deleteRolesBySystemId(systemId);
+        List<Long> distinctRoleIds = distinctIds(roleIds);
+        if (!distinctRoleIds.isEmpty()) {
+            businessSystemMapper.insertSystemRoles(systemId, distinctRoleIds);
+        }
+    }
+
+    /**
+     * 去重并过滤空角色 ID。
+     */
+    private List<Long> distinctIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return new ArrayList<>(new LinkedHashSet<>(ids.stream().filter(id -> id != null).toList()));
     }
 
     /**
@@ -290,8 +338,11 @@ public class BusinessSystemServiceImpl implements BusinessSystemService {
                 system.getReadTimeout(),
                 system.getStatus(),
                 system.getDescription(),
+                system.getCreatedBy(),
                 system.getCreatedTime(),
-                system.getUpdatedTime()
+                system.getUpdatedBy(),
+                system.getUpdatedTime(),
+                businessSystemMapper.findRoleIdsBySystemId(system.getId())
         );
     }
 }

@@ -26,6 +26,7 @@ import com.wxc.aidata.server.business.service.BusinessApiHttpRequest;
 import com.wxc.aidata.server.business.service.BusinessApiHttpResponse;
 import com.wxc.aidata.server.business.service.BusinessApiService;
 import com.wxc.aidata.server.common.id.IdGenerator;
+import com.wxc.aidata.server.permission.service.CurrentUserAccessService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +36,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -61,6 +63,7 @@ public class BusinessApiServiceImpl implements BusinessApiService {
     private final BusinessSystemMapper businessSystemMapper;
     private final IdGenerator idGenerator;
     private final BusinessApiHttpClient httpClient;
+    private final CurrentUserAccessService currentUserAccessService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
@@ -71,13 +74,15 @@ public class BusinessApiServiceImpl implements BusinessApiService {
             BusinessApiParameterMapper parameterMapper,
             BusinessSystemMapper businessSystemMapper,
             IdGenerator idGenerator,
-            BusinessApiHttpClient httpClient) {
+            BusinessApiHttpClient httpClient,
+            CurrentUserAccessService currentUserAccessService) {
 
         this.businessApiMapper = businessApiMapper;
         this.parameterMapper = parameterMapper;
         this.businessSystemMapper = businessSystemMapper;
         this.idGenerator = idGenerator;
         this.httpClient = httpClient;
+        this.currentUserAccessService = currentUserAccessService;
     }
 
     /**
@@ -86,11 +91,12 @@ public class BusinessApiServiceImpl implements BusinessApiService {
     @Override
     public PageResult<BusinessApiResponse> pageBusinessApis(BusinessApiPageQuery query) {
         BusinessApiPageQuery safeQuery = query == null ? new BusinessApiPageQuery(1, 10, null, null, null, null) : query;
-        PageHelper.startPage(safeQuery.normalizedPageNo(), safeQuery.normalizedPageSize());
-        List<BusinessApiMapper.BusinessApiRow> rows = businessApiMapper.findBusinessApis(safeQuery);
+        BusinessApiPageQuery scopedQuery = safeQuery.withAccessScope(currentUserAccessService.currentRoleIds(), currentUserAccessService.currentUserIsAdmin());
+        PageHelper.startPage(scopedQuery.normalizedPageNo(), scopedQuery.normalizedPageSize());
+        List<BusinessApiMapper.BusinessApiRow> rows = businessApiMapper.findBusinessApis(scopedQuery);
         PageInfo<BusinessApiMapper.BusinessApiRow> pageInfo = new PageInfo<>(rows);
         List<BusinessApiResponse> records = rows.stream().map(this::toListResponse).toList();
-        return PageResult.of(pageInfo.getTotal(), safeQuery.normalizedPageNo(), safeQuery.normalizedPageSize(), records);
+        return PageResult.of(pageInfo.getTotal(), scopedQuery.normalizedPageNo(), scopedQuery.normalizedPageSize(), records);
     }
 
     /**
@@ -98,7 +104,7 @@ public class BusinessApiServiceImpl implements BusinessApiService {
      */
     @Override
     public BusinessApiResponse getBusinessApi(Long id) {
-        BizApi api = getApiOrThrow(id);
+        BizApi api = getAccessibleApiOrThrow(id);
         BizSystem system = getSystemByIdOrThrow(api.getSystemId());
         return toResponse(api, system, parameterMapper.findByApiId(api.getId()));
     }
@@ -110,7 +116,7 @@ public class BusinessApiServiceImpl implements BusinessApiService {
     @Transactional(rollbackFor = Exception.class)
     public void createBusinessApi(BusinessApiCreateCommand command) {
         validateCreateCommand(command);
-        BizSystem system = getSystemOrThrow(command.systemId());
+        BizSystem system = getAccessibleSystemOrThrow(command.systemId(), true);
         String apiCode = command.apiCode().trim();
         if (businessApiMapper.existsByApiCode(apiCode)) {
             throw new BusinessException(BUSINESS_API_ERROR_CODE, "接口编码已存在");
@@ -118,6 +124,7 @@ public class BusinessApiServiceImpl implements BusinessApiService {
 
         Long apiId = idGenerator.nextId();
         LocalDateTime now = LocalDateTime.now();
+        Long userId = currentUserAccessService.currentUserId();
         businessApiMapper.insert(toEntity(
                 apiId,
                 command.systemId(),
@@ -131,9 +138,12 @@ public class BusinessApiServiceImpl implements BusinessApiService {
                 command.responseDataPath(),
                 command.status(),
                 command.description(),
+                userId,
                 now,
+                userId,
                 now
         ));
+        saveRoles(apiId, command.roleIds());
         saveParameters(apiId, command.parameters(), now);
     }
 
@@ -147,8 +157,8 @@ public class BusinessApiServiceImpl implements BusinessApiService {
             throw new BusinessException(BUSINESS_API_ERROR_CODE, "业务接口ID不能为空");
         }
         validateUpdateCommand(command);
-        BizApi existing = getApiOrThrow(command.id());
-        getSystemOrThrow(command.systemId());
+        BizApi existing = getAccessibleApiOrThrow(command.id());
+        getAccessibleSystemOrThrow(command.systemId(), true);
         String apiCode = command.apiCode().trim();
         if (businessApiMapper.existsByApiCodeExcludeId(apiCode, command.id())) {
             throw new BusinessException(BUSINESS_API_ERROR_CODE, "接口编码已存在");
@@ -167,13 +177,16 @@ public class BusinessApiServiceImpl implements BusinessApiService {
                 command.responseDataPath(),
                 command.status(),
                 command.description(),
+                existing.getCreatedBy(),
                 existing.getCreatedTime(),
+                currentUserAccessService.currentUserId(),
                 LocalDateTime.now()
         );
         int updated = businessApiMapper.updateById(api);
         if (updated == 0) {
             throw new BusinessException(BUSINESS_API_ERROR_CODE, "业务接口不存在");
         }
+        saveRoles(command.id(), command.roleIds());
         parameterMapper.deleteByApiId(command.id());
         saveParameters(command.id(), command.parameters(), LocalDateTime.now());
     }
@@ -183,8 +196,9 @@ public class BusinessApiServiceImpl implements BusinessApiService {
      */
     @Override
     public void updateStatus(Long id, Integer status) {
-        BizApi existing = getApiOrThrow(id);
+        BizApi existing = getAccessibleApiOrThrow(id);
         existing.setStatus(normalizeStatus(status));
+        existing.setUpdatedBy(currentUserAccessService.currentUserId());
         existing.setUpdatedTime(LocalDateTime.now());
         int updated = businessApiMapper.updateById(existing);
         if (updated == 0) {
@@ -198,7 +212,8 @@ public class BusinessApiServiceImpl implements BusinessApiService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteBusinessApi(Long id) {
-        validateId(id);
+        getAccessibleApiOrThrow(id);
+        businessApiMapper.deleteRolesByApiId(id);
         parameterMapper.deleteByApiId(id);
         int deleted = businessApiMapper.deleteById(id);
         if (deleted == 0) {
@@ -211,11 +226,11 @@ public class BusinessApiServiceImpl implements BusinessApiService {
      */
     @Override
     public BusinessApiTestResponse testBusinessApi(Long id, BusinessApiTestCommand command) {
-        BizApi api = getApiOrThrow(id);
+        BizApi api = getAccessibleApiOrThrow(id);
         if (!Integer.valueOf(1).equals(api.getStatus())) {
             throw new BusinessException(BUSINESS_API_ERROR_CODE, "业务接口已禁用");
         }
-        BizSystem system = getSystemOrThrow(api.getSystemId());
+        BizSystem system = getAccessibleSystemOrThrow(api.getSystemId(), true);
         List<BizApiParameter> parameters = parameterMapper.findByApiId(api.getId());
         Map<String, Object> values = command == null || command.parameterValues() == null ? Map.of() : command.parameterValues();
         BusinessApiHttpRequest request = buildHttpRequest(system, api, parameters, values);
@@ -399,11 +414,36 @@ public class BusinessApiServiceImpl implements BusinessApiService {
     }
 
     /**
+     * 查询业务接口并校验当前用户角色范围，避免直接访问越权接口。
+     */
+    private BizApi getAccessibleApiOrThrow(Long id) {
+        BizApi api = getApiOrThrow(id);
+        if (!currentUserAccessService.canAccessResource(businessApiMapper.findRoleIdsByApiId(id))) {
+            throw new BusinessException(BUSINESS_API_ERROR_CODE, "无权访问该业务接口");
+        }
+        return api;
+    }
+
+    /**
      * 查询启用的业务系统，不存在或禁用时阻断接口配置和测试。
      */
     private BizSystem getSystemOrThrow(Long systemId) {
-        BizSystem system = getSystemByIdOrThrow(systemId);
+        BizSystem system = getAccessibleSystemOrThrow(systemId, true);
         if (!Integer.valueOf(1).equals(system.getStatus())) {
+            throw new BusinessException(BUSINESS_API_ERROR_CODE, "业务系统已禁用");
+        }
+        return system;
+    }
+
+    /**
+     * 查询业务系统并按角色范围校验，创建/测试接口都必须基于可访问系统。
+     */
+    private BizSystem getAccessibleSystemOrThrow(Long systemId, boolean requireEnabled) {
+        BizSystem system = getSystemByIdOrThrow(systemId);
+        if (!currentUserAccessService.canAccessResource(businessSystemMapper.findRoleIdsBySystemId(systemId))) {
+            throw new BusinessException(BUSINESS_API_ERROR_CODE, "无权访问所属业务系统");
+        }
+        if (requireEnabled && !Integer.valueOf(1).equals(system.getStatus())) {
             throw new BusinessException(BUSINESS_API_ERROR_CODE, "业务系统已禁用");
         }
         return system;
@@ -491,7 +531,9 @@ public class BusinessApiServiceImpl implements BusinessApiService {
             String responseDataPath,
             Integer status,
             String description,
+            Long createdBy,
             LocalDateTime createdTime,
+            Long updatedBy,
             LocalDateTime updatedTime) {
 
         return new BizApi(
@@ -507,9 +549,32 @@ public class BusinessApiServiceImpl implements BusinessApiService {
                 trimToNull(responseDataPath),
                 normalizeStatus(status),
                 trimToNull(description),
+                createdBy,
                 createdTime,
+                updatedBy,
                 updatedTime
         );
+    }
+
+    /**
+     * 覆盖保存业务接口角色范围，空角色列表表示仅 admin 可见。
+     */
+    private void saveRoles(Long apiId, List<Long> roleIds) {
+        businessApiMapper.deleteRolesByApiId(apiId);
+        List<Long> distinctRoleIds = distinctIds(roleIds);
+        if (!distinctRoleIds.isEmpty()) {
+            businessApiMapper.insertApiRoles(apiId, distinctRoleIds);
+        }
+    }
+
+    /**
+     * 去重并过滤空角色 ID。
+     */
+    private List<Long> distinctIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return new ArrayList<>(new LinkedHashSet<>(ids.stream().filter(id -> id != null).toList()));
     }
 
     /**
@@ -532,8 +597,11 @@ public class BusinessApiServiceImpl implements BusinessApiService {
                 row.responseDataPath(),
                 row.status(),
                 row.description(),
+                row.createdBy(),
                 row.createdTime(),
+                row.updatedBy(),
                 row.updatedTime(),
+                businessApiMapper.findRoleIdsByApiId(row.id()),
                 List.of()
         );
     }
@@ -558,8 +626,11 @@ public class BusinessApiServiceImpl implements BusinessApiService {
                 api.getResponseDataPath(),
                 api.getStatus(),
                 api.getDescription(),
+                api.getCreatedBy(),
                 api.getCreatedTime(),
+                api.getUpdatedBy(),
                 api.getUpdatedTime(),
+                businessApiMapper.findRoleIdsByApiId(api.getId()),
                 parameters.stream().map(this::toParameterResponse).toList()
         );
     }

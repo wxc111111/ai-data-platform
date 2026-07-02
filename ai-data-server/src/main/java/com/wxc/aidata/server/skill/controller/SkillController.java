@@ -122,8 +122,8 @@ public class SkillController {
      */
     private SkillCreateCommand toCreateCommand(SkillCreateRequest request) {
         return new SkillCreateCommand(request.skillCode(), request.skillName(), request.description(), request.apiId(),
-                request.permissionCode(), request.timeoutMs(), request.maxResultCount(), request.status(),
-                toParameterCommands(request.parameters()));
+                request.permissionCode(), request.visibility(), request.timeoutMs(), request.maxResultCount(), request.status(),
+                request.roleIds(), toParameterCommands(request.parameters()));
     }
 
     /**
@@ -131,8 +131,8 @@ public class SkillController {
      */
     private SkillUpdateCommand toUpdateCommand(Long id, SkillUpdateRequest request) {
         return new SkillUpdateCommand(id, request.skillCode(), request.skillName(), request.description(), request.apiId(),
-                request.permissionCode(), request.timeoutMs(), request.maxResultCount(), request.status(),
-                toParameterCommands(request.parameters()));
+                request.permissionCode(), request.visibility(), request.timeoutMs(), request.maxResultCount(), request.status(),
+                request.roleIds(), toParameterCommands(request.parameters()));
     }
 
     /**

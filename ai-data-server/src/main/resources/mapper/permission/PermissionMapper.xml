@@ -14,6 +14,17 @@
         ORDER BY r.role_code
     </select>
 
+    <!-- 查询用户拥有的启用角色 ID，供业务资源按角色范围裁剪。 -->
+    <select id="findRoleIds" resultType="java.lang.Long">
+        SELECT
+            r.id
+        FROM sys_role r
+        INNER JOIN sys_user_role ur ON ur.role_id = r.id
+        WHERE ur.user_id = #{userId}
+          AND r.status = 1
+        ORDER BY r.id
+    </select>
+
     <!-- 查询用户拥有的启用权限编码，过滤空权限，供前端菜单按钮和后端鉴权使用。 -->
     <select id="findPermissionCodes" resultType="java.lang.String">
         SELECT

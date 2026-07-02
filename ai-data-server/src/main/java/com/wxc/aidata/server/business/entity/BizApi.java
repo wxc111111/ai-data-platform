@@ -24,7 +24,9 @@ public class BizApi {
     private String responseDataPath;
     private Integer status;
     private String description;
+    private Long createdBy;
     private LocalDateTime createdTime;
+    private Long updatedBy;
     private LocalDateTime updatedTime;
 
     /**
@@ -52,6 +54,31 @@ public class BizApi {
             LocalDateTime createdTime,
             LocalDateTime updatedTime) {
 
+        this(id, systemId, apiCode, apiName, requestPath, requestMethod, contentType, connectTimeout, readTimeout,
+                responseDataPath, status, description, null, createdTime, null, updatedTime);
+    }
+
+    /**
+     * 服务层写入完整审计字段时使用的构造方法。
+     */
+    public BizApi(
+            Long id,
+            Long systemId,
+            String apiCode,
+            String apiName,
+            String requestPath,
+            String requestMethod,
+            String contentType,
+            Integer connectTimeout,
+            Integer readTimeout,
+            String responseDataPath,
+            Integer status,
+            String description,
+            Long createdBy,
+            LocalDateTime createdTime,
+            Long updatedBy,
+            LocalDateTime updatedTime) {
+
         this.id = id;
         this.systemId = systemId;
         this.apiCode = apiCode;
@@ -64,7 +91,9 @@ public class BizApi {
         this.responseDataPath = responseDataPath;
         this.status = status;
         this.description = description;
+        this.createdBy = createdBy;
         this.createdTime = createdTime;
+        this.updatedBy = updatedBy;
         this.updatedTime = updatedTime;
     }
 
@@ -168,12 +197,28 @@ public class BizApi {
         return createdTime;
     }
 
+    public Long getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(Long createdBy) {
+        this.createdBy = createdBy;
+    }
+
     public void setCreatedTime(LocalDateTime createdTime) {
         this.createdTime = createdTime;
     }
 
     public LocalDateTime getUpdatedTime() {
         return updatedTime;
+    }
+
+    public Long getUpdatedBy() {
+        return updatedBy;
+    }
+
+    public void setUpdatedBy(Long updatedBy) {
+        this.updatedBy = updatedBy;
     }
 
     public void setUpdatedTime(LocalDateTime updatedTime) {

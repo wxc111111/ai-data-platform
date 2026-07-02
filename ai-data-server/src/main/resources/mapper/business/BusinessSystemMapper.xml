@@ -13,7 +13,9 @@
         <result property="readTimeout" column="read_timeout"/>
         <result property="status" column="status"/>
         <result property="description" column="description"/>
+        <result property="createdBy" column="created_by"/>
         <result property="createdTime" column="created_time"/>
+        <result property="updatedBy" column="updated_by"/>
         <result property="updatedTime" column="updated_time"/>
     </resultMap>
 
@@ -30,7 +32,9 @@
             read_timeout,
             status,
             description,
+            created_by,
             created_time,
+            updated_by,
             updated_time
         FROM biz_system
         <where>
@@ -42,6 +46,24 @@
             </if>
             <if test="query.status != null">
                 AND status = #{query.status}
+            </if>
+            <if test="query.admin == false">
+                <choose>
+                    <when test="query.roleIds != null and query.roleIds.size() > 0">
+                        AND EXISTS (
+                            SELECT 1
+                            FROM biz_system_role bsr
+                            WHERE bsr.system_id = biz_system.id
+                              AND bsr.role_id IN
+                              <foreach collection="query.roleIds" item="roleId" open="(" separator="," close=")">
+                                  #{roleId}
+                              </foreach>
+                        )
+                    </when>
+                    <otherwise>
+                        AND 1 = 0
+                    </otherwise>
+                </choose>
             </if>
         </where>
         ORDER BY updated_time DESC, id DESC
@@ -61,4 +83,27 @@
         WHERE system_code = #{systemCode}
           AND id != #{id}
     </select>
+
+    <!-- 查询业务系统可见角色。 -->
+    <select id="findRoleIdsBySystemId" resultType="java.lang.Long">
+        SELECT role_id
+        FROM biz_system_role
+        WHERE system_id = #{systemId}
+        ORDER BY role_id
+    </select>
+
+    <!-- 删除业务系统旧角色范围。 -->
+    <delete id="deleteRolesBySystemId">
+        DELETE FROM biz_system_role
+        WHERE system_id = #{systemId}
+    </delete>
+
+    <!-- 保存业务系统角色范围，roleIds 为空时由服务层跳过。 -->
+    <insert id="insertSystemRoles">
+        INSERT INTO biz_system_role (system_id, role_id)
+        VALUES
+        <foreach collection="roleIds" item="roleId" separator=",">
+            (#{systemId}, #{roleId})
+        </foreach>
+    </insert>
 </mapper>

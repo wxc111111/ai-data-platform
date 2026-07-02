@@ -15,12 +15,24 @@ public record SkillResponse(
         String apiName,
         String apiCode,
         String permissionCode,
+        String visibility,
         Integer timeoutMs,
         Integer maxResultCount,
         Integer status,
         Integer versionNo,
+        Long createdBy,
         LocalDateTime createdTime,
+        Long updatedBy,
         LocalDateTime updatedTime,
+        List<Long> roleIds,
         List<SkillParameterResponse> parameters
 ) {
+    public SkillResponse(Long id, String skillCode, String skillName, String description, Long apiId,
+                         String apiName, String apiCode, String permissionCode, Integer timeoutMs,
+                         Integer maxResultCount, Integer status, Integer versionNo,
+                         LocalDateTime createdTime, LocalDateTime updatedTime,
+                         List<SkillParameterResponse> parameters) {
+        this(id, skillCode, skillName, description, apiId, apiName, apiCode, permissionCode, "PRIVATE", timeoutMs,
+                maxResultCount, status, versionNo, null, createdTime, null, updatedTime, List.of(), parameters);
+    }
 }

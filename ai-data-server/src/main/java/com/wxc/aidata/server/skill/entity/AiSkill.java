@@ -18,11 +18,14 @@ public class AiSkill {
     private String description;
     private Long apiId;
     private String permissionCode;
+    private String visibility;
     private Integer timeoutMs;
     private Integer maxResultCount;
     private Integer status;
     private Integer versionNo;
+    private Long createdBy;
     private LocalDateTime createdTime;
+    private Long updatedBy;
     private LocalDateTime updatedTime;
 
     /**
@@ -37,18 +40,41 @@ public class AiSkill {
     public AiSkill(Long id, String skillCode, String skillName, String description, Long apiId, String permissionCode,
                    Integer timeoutMs, Integer maxResultCount, Integer status, Integer versionNo,
                    LocalDateTime createdTime, LocalDateTime updatedTime) {
+        this(id, skillCode, skillName, description, apiId, permissionCode, "PRIVATE", timeoutMs, maxResultCount, status,
+                versionNo, null, createdTime, null, updatedTime);
+    }
+
+    /**
+     * 服务层写入完整审计字段时使用。
+     */
+    public AiSkill(Long id, String skillCode, String skillName, String description, Long apiId, String permissionCode,
+                   String visibility, Integer timeoutMs, Integer maxResultCount, Integer status, Integer versionNo,
+                   Long createdBy, LocalDateTime createdTime, Long updatedBy, LocalDateTime updatedTime) {
         this.id = id;
         this.skillCode = skillCode;
         this.skillName = skillName;
         this.description = description;
         this.apiId = apiId;
         this.permissionCode = permissionCode;
+        this.visibility = visibility;
         this.timeoutMs = timeoutMs;
         this.maxResultCount = maxResultCount;
         this.status = status;
         this.versionNo = versionNo;
+        this.createdBy = createdBy;
         this.createdTime = createdTime;
+        this.updatedBy = updatedBy;
         this.updatedTime = updatedTime;
+    }
+
+    /**
+     * 兼容未传 Skill 类型的旧调用，默认按私有 Skill 保存。
+     */
+    public AiSkill(Long id, String skillCode, String skillName, String description, Long apiId, String permissionCode,
+                   Integer timeoutMs, Integer maxResultCount, Integer status, Integer versionNo,
+                   Long createdBy, LocalDateTime createdTime, Long updatedBy, LocalDateTime updatedTime) {
+        this(id, skillCode, skillName, description, apiId, permissionCode, "PRIVATE", timeoutMs, maxResultCount,
+                status, versionNo, createdBy, createdTime, updatedBy, updatedTime);
     }
 
     public Long getId() {
@@ -99,6 +125,14 @@ public class AiSkill {
         this.permissionCode = permissionCode;
     }
 
+    public String getVisibility() {
+        return visibility;
+    }
+
+    public void setVisibility(String visibility) {
+        this.visibility = visibility;
+    }
+
     public Integer getTimeoutMs() {
         return timeoutMs;
     }
@@ -135,12 +169,28 @@ public class AiSkill {
         return createdTime;
     }
 
+    public Long getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(Long createdBy) {
+        this.createdBy = createdBy;
+    }
+
     public void setCreatedTime(LocalDateTime createdTime) {
         this.createdTime = createdTime;
     }
 
     public LocalDateTime getUpdatedTime() {
         return updatedTime;
+    }
+
+    public Long getUpdatedBy() {
+        return updatedBy;
+    }
+
+    public void setUpdatedBy(Long updatedBy) {
+        this.updatedBy = updatedBy;
     }
 
     public void setUpdatedTime(LocalDateTime updatedTime) {

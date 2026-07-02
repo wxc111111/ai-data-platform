@@ -17,6 +17,7 @@ public record BusinessApiUpdateRequest(
         String responseDataPath,
         Integer status,
         String description,
+        List<Long> roleIds,
         List<BusinessApiParameterRequest> parameters
 ) {
 }

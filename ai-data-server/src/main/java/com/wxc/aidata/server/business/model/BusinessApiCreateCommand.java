@@ -17,6 +17,14 @@ public record BusinessApiCreateCommand(
         String responseDataPath,
         Integer status,
         String description,
+        List<Long> roleIds,
         List<BusinessApiParameterCommand> parameters
 ) {
+    public BusinessApiCreateCommand(Long systemId, String apiCode, String apiName, String requestPath,
+                                    String requestMethod, String contentType, Integer connectTimeout,
+                                    Integer readTimeout, String responseDataPath, Integer status,
+                                    String description, List<BusinessApiParameterCommand> parameters) {
+        this(systemId, apiCode, apiName, requestPath, requestMethod, contentType, connectTimeout, readTimeout,
+                responseDataPath, status, description, List.of(), parameters);
+    }
 }

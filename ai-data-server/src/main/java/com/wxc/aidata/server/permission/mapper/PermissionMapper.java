@@ -16,6 +16,11 @@ public interface PermissionMapper {
     List<String> findRoleCodes(Long userId);
 
     /**
+     * 查询用户拥有的启用角色 ID，用于资源角色范围过滤。
+     */
+    List<Long> findRoleIds(Long userId);
+
+    /**
      * 查询用户拥有的权限编码。
      */
     List<String> findPermissionCodes(Long userId);

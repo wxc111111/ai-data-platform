@@ -18,7 +18,9 @@
             <arg column="response_data_path" javaType="java.lang.String"/>
             <arg column="status" javaType="java.lang.Integer"/>
             <arg column="description" javaType="java.lang.String"/>
+            <arg column="created_by" javaType="java.lang.Long"/>
             <arg column="created_time" javaType="java.time.LocalDateTime"/>
+            <arg column="updated_by" javaType="java.lang.Long"/>
             <arg column="updated_time" javaType="java.time.LocalDateTime"/>
         </constructor>
     </resultMap>
@@ -40,7 +42,9 @@
             a.response_data_path,
             a.status,
             a.description,
+            a.created_by,
             a.created_time,
+            a.updated_by,
             a.updated_time
         FROM biz_api a
         INNER JOIN biz_system s ON s.id = a.system_id
@@ -56,6 +60,24 @@
             </if>
             <if test="query.status != null">
                 AND a.status = #{query.status}
+            </if>
+            <if test="query.admin == false">
+                <choose>
+                    <when test="query.roleIds != null and query.roleIds.size() > 0">
+                        AND EXISTS (
+                            SELECT 1
+                            FROM biz_api_role bar
+                            WHERE bar.api_id = a.id
+                              AND bar.role_id IN
+                              <foreach collection="query.roleIds" item="roleId" open="(" separator="," close=")">
+                                  #{roleId}
+                              </foreach>
+                        )
+                    </when>
+                    <otherwise>
+                        AND 1 = 0
+                    </otherwise>
+                </choose>
             </if>
         </where>
         ORDER BY a.updated_time DESC, a.id DESC
@@ -75,4 +97,27 @@
         WHERE api_code = #{apiCode}
           AND id != #{id}
     </select>
+
+    <!-- 查询业务接口可见角色。 -->
+    <select id="findRoleIdsByApiId" resultType="java.lang.Long">
+        SELECT role_id
+        FROM biz_api_role
+        WHERE api_id = #{apiId}
+        ORDER BY role_id
+    </select>
+
+    <!-- 删除业务接口旧角色范围。 -->
+    <delete id="deleteRolesByApiId">
+        DELETE FROM biz_api_role
+        WHERE api_id = #{apiId}
+    </delete>
+
+    <!-- 保存业务接口角色范围，roleIds 为空时由服务层跳过。 -->
+    <insert id="insertApiRoles">
+        INSERT INTO biz_api_role (api_id, role_id)
+        VALUES
+        <foreach collection="roleIds" item="roleId" separator=",">
+            (#{apiId}, #{roleId})
+        </foreach>
+    </insert>
 </mapper>

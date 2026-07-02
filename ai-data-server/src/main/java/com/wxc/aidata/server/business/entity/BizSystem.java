@@ -22,7 +22,9 @@ public class BizSystem {
     private Integer readTimeout;
     private Integer status;
     private String description;
+    private Long createdBy;
     private LocalDateTime createdTime;
+    private Long updatedBy;
     private LocalDateTime updatedTime;
 
     /**
@@ -48,6 +50,29 @@ public class BizSystem {
             LocalDateTime createdTime,
             LocalDateTime updatedTime) {
 
+        this(id, systemCode, systemName, baseUrl, authType, authConfig, connectTimeout, readTimeout, status,
+                description, null, createdTime, null, updatedTime);
+    }
+
+    /**
+     * 服务层写入完整审计字段时使用的构造方法。
+     */
+    public BizSystem(
+            Long id,
+            String systemCode,
+            String systemName,
+            String baseUrl,
+            String authType,
+            String authConfig,
+            Integer connectTimeout,
+            Integer readTimeout,
+            Integer status,
+            String description,
+            Long createdBy,
+            LocalDateTime createdTime,
+            Long updatedBy,
+            LocalDateTime updatedTime) {
+
         this.id = id;
         this.systemCode = systemCode;
         this.systemName = systemName;
@@ -58,7 +83,9 @@ public class BizSystem {
         this.readTimeout = readTimeout;
         this.status = status;
         this.description = description;
+        this.createdBy = createdBy;
         this.createdTime = createdTime;
+        this.updatedBy = updatedBy;
         this.updatedTime = updatedTime;
     }
 
@@ -146,12 +173,28 @@ public class BizSystem {
         return createdTime;
     }
 
+    public Long getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(Long createdBy) {
+        this.createdBy = createdBy;
+    }
+
     public void setCreatedTime(LocalDateTime createdTime) {
         this.createdTime = createdTime;
     }
 
     public LocalDateTime getUpdatedTime() {
         return updatedTime;
+    }
+
+    public Long getUpdatedBy() {
+        return updatedBy;
+    }
+
+    public void setUpdatedBy(Long updatedBy) {
+        this.updatedBy = updatedBy;
     }
 
     public void setUpdatedTime(LocalDateTime updatedTime) {

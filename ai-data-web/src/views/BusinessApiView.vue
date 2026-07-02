@@ -46,6 +46,11 @@
           </el-tag>
         </template>
       </el-table-column>
+      <el-table-column label="可见角色" min-width="180" show-overflow-tooltip>
+        <template #default="{ row }">
+          {{ roleNames(row.roleIds) }}
+        </template>
+      </el-table-column>
       <el-table-column label="更新时间" width="180">
         <template #default="{ row }">
           {{ formatDateTime(row.updatedTime) }}
@@ -137,6 +142,18 @@
         </el-form-item>
         <el-form-item label="读取超时">
           <el-input-number v-model="apiForm.readTimeout" :min="1" :max="300000" :step="1000" controls-position="right" />
+        </el-form-item>
+        <el-form-item label="可见角色">
+          <el-select
+            v-model="apiForm.roleIds"
+            class="full-select"
+            multiple
+            collapse-tags
+            collapse-tags-tooltip
+            placeholder="不选择则仅管理员可见"
+          >
+            <el-option v-for="role in roles" :key="role.id" :label="role.roleName" :value="role.id" />
+          </el-select>
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-switch v-model="apiForm.status" :active-value="1" :inactive-value="0" />
@@ -320,6 +337,7 @@ import {
   type BusinessApiTestResponse
 } from '@/api/business-apis'
 import { fetchBusinessSystems, type BusinessSystemItem } from '@/api/business-systems'
+import { fetchRoleOptions, type RoleOption } from '@/api/roles'
 import { useAuthStore } from '@/stores/auth'
 
 type ParameterLocation = BusinessApiParameterItem['parameterLocation']
@@ -332,6 +350,7 @@ const testDialogVisible = ref(false)
 const apis = ref<BusinessApiItem[]>([])
 const total = ref(0)
 const systemOptions = ref<BusinessSystemItem[]>([])
+const roles = ref<RoleOption[]>([])
 const editingApi = ref<BusinessApiItem | null>(null)
 const testingApi = ref<BusinessApiItem | null>(null)
 const testResult = ref<BusinessApiTestResponse | null>(null)
@@ -364,6 +383,7 @@ const apiForm = reactive<BusinessApiPayload>({
   responseDataPath: '',
   status: 1,
   description: '',
+  roleIds: [],
   parameters: []
 })
 
@@ -380,8 +400,18 @@ const rules: FormRules = {
 
 onMounted(() => {
   void loadSystemOptions()
+  void loadRoleOptions()
   void loadApis()
 })
+
+// 加载可选角色，用于配置业务接口的数据可见范围。
+async function loadRoleOptions() {
+  try {
+    roles.value = await fetchRoleOptions()
+  } catch (error) {
+    showError(error, '加载角色选项失败')
+  }
+}
 
 // 加载业务系统下拉选项，业务接口必须归属到一个业务系统。
 async function loadSystemOptions() {
@@ -454,6 +484,7 @@ async function openEditDialog(api: BusinessApiItem) {
       responseDataPath: detail.responseDataPath || '',
       status: detail.status,
       description: detail.description || '',
+      roleIds: detail.roleIds || [],
       parameters: detail.parameters.map(copyParameter)
     })
     dialogVisible.value = true
@@ -582,6 +613,7 @@ function resetForm() {
     responseDataPath: '',
     status: 1,
     description: '',
+    roleIds: [],
     parameters: []
   })
 }
@@ -696,6 +728,15 @@ function formatHeaderPreview(headers: Record<string, string>) {
 // 在线测试参数表统一展示必填状态，避免直接暴露数字标识。
 function formatRequired(required: number) {
   return required === 1 ? '是' : '否'
+}
+
+// 把角色 ID 展示成角色名称；未分配角色时只有管理员能查看。
+function roleNames(roleIds: string[] | undefined) {
+  if (!roleIds?.length) {
+    return '仅管理员'
+  }
+  const roleMap = new Map(roles.value.map((role) => [role.id, role.roleName]))
+  return roleIds.map((roleId) => roleMap.get(roleId) || roleId).join('、')
 }
 
 // 返回数据可能是对象、数组或基础类型，统一转成便于阅读的文本。

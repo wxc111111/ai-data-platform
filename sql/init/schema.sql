@@ -11,9 +11,12 @@ DROP TABLE IF EXISTS sync_job_log;
 DROP TABLE IF EXISTS sync_job_config;
 DROP TABLE IF EXISTS ai_skill_parameter;
 DROP TABLE IF EXISTS ai_skill;
+DROP TABLE IF EXISTS ai_skill_role;
 DROP TABLE IF EXISTS biz_api_parameter;
 DROP TABLE IF EXISTS biz_api;
+DROP TABLE IF EXISTS biz_api_role;
 DROP TABLE IF EXISTS biz_system;
+DROP TABLE IF EXISTS biz_system_role;
 DROP TABLE IF EXISTS sys_role_permission;
 DROP TABLE IF EXISTS sys_user_role;
 DROP TABLE IF EXISTS sys_permission;
@@ -90,11 +93,20 @@ CREATE TABLE biz_system (
     read_timeout      INT NOT NULL DEFAULT 10000 COMMENT '读取超时时间，单位毫秒',
     status            TINYINT NOT NULL DEFAULT 1 COMMENT '系统状态：1启用，0禁用',
     description       VARCHAR(500) COMMENT '业务系统说明',
+    created_by        BIGINT NOT NULL COMMENT '创建人用户ID',
     created_time      DATETIME NOT NULL COMMENT '创建时间',
+    updated_by        BIGINT NOT NULL COMMENT '最后更新人用户ID',
     updated_time      DATETIME NOT NULL COMMENT '最后更新时间',
     PRIMARY KEY (id),
     UNIQUE KEY uk_system_code (system_code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='业务系统表，保存 OA、CRM、HR 等第三方系统配置';
+
+CREATE TABLE biz_system_role (
+    system_id BIGINT NOT NULL COMMENT '业务系统ID',
+    role_id   BIGINT NOT NULL COMMENT '可见角色ID',
+    PRIMARY KEY (system_id, role_id),
+    KEY idx_role_id (role_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='业务系统角色范围表，控制业务系统对哪些角色可见';
 
 CREATE TABLE biz_api (
     id                  BIGINT NOT NULL COMMENT '主键ID',
@@ -109,12 +121,21 @@ CREATE TABLE biz_api (
     response_data_path  VARCHAR(500) COMMENT '响应数据提取路径，例如 data.records',
     status              TINYINT NOT NULL DEFAULT 1 COMMENT '接口状态：1启用，0禁用',
     description         VARCHAR(1000) COMMENT '业务接口说明',
+    created_by          BIGINT NOT NULL COMMENT '创建人用户ID',
     created_time        DATETIME NOT NULL COMMENT '创建时间',
+    updated_by          BIGINT NOT NULL COMMENT '最后更新人用户ID',
     updated_time        DATETIME NOT NULL COMMENT '最后更新时间',
     PRIMARY KEY (id),
     UNIQUE KEY uk_api_code (api_code),
     KEY idx_system_id (system_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='业务接口表，保存第三方 HTTP 接口配置';
+
+CREATE TABLE biz_api_role (
+    api_id  BIGINT NOT NULL COMMENT '业务接口ID',
+    role_id BIGINT NOT NULL COMMENT '可见角色ID',
+    PRIMARY KEY (api_id, role_id),
+    KEY idx_role_id (role_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='业务接口角色范围表，控制业务接口对哪些角色可见';
 
 CREATE TABLE biz_api_parameter (
     id                  BIGINT NOT NULL COMMENT '主键ID',
@@ -139,16 +160,26 @@ CREATE TABLE ai_skill (
     description         VARCHAR(1000) NOT NULL COMMENT 'Skill 能力说明',
     api_id              BIGINT NOT NULL COMMENT '绑定的业务接口ID',
     permission_code     VARCHAR(128) COMMENT '调用该 Skill 需要的权限编码',
+    visibility          VARCHAR(32) NOT NULL DEFAULT 'PRIVATE' COMMENT 'Skill 类型：PRIVATE私有，PUBLIC公共',
     timeout_ms          INT NOT NULL DEFAULT 10000 COMMENT 'Skill 执行超时时间，单位毫秒',
     max_result_count    INT NOT NULL DEFAULT 100 COMMENT '最大返回结果数量',
     status              TINYINT NOT NULL DEFAULT 1 COMMENT 'Skill 状态：1启用，0禁用',
     version_no          INT NOT NULL DEFAULT 1 COMMENT '版本号，用于配置变更控制',
+    created_by          BIGINT NOT NULL COMMENT '创建人用户ID',
     created_time        DATETIME NOT NULL COMMENT '创建时间',
+    updated_by          BIGINT NOT NULL COMMENT '最后更新人用户ID',
     updated_time        DATETIME NOT NULL COMMENT '最后更新时间',
     PRIMARY KEY (id),
     UNIQUE KEY uk_skill_code (skill_code),
     KEY idx_api_id (api_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Skill 表，保存可对外调用的业务能力配置';
+
+CREATE TABLE ai_skill_role (
+    skill_id BIGINT NOT NULL COMMENT 'Skill ID',
+    role_id  BIGINT NOT NULL COMMENT '可见角色ID',
+    PRIMARY KEY (skill_id, role_id),
+    KEY idx_role_id (role_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Skill 角色范围表，控制 Skill 对哪些角色可见';
 
 CREATE TABLE ai_skill_parameter (
     id                  BIGINT NOT NULL COMMENT '主键ID',

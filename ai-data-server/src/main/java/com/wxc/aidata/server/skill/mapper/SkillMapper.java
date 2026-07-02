@@ -31,6 +31,21 @@ public interface SkillMapper extends BaseMapper<AiSkill> {
     boolean existsBySkillCodeExcludeId(@Param("skillCode") String skillCode, @Param("id") Long id);
 
     /**
+     * 查询 Skill 授权角色 ID，用于详情回填和访问校验。
+     */
+    List<Long> findRoleIdsBySkillId(Long skillId);
+
+    /**
+     * 覆盖保存角色范围前先删除旧关系。
+     */
+    void deleteRolesBySkillId(Long skillId);
+
+    /**
+     * 批量插入 Skill 角色范围。
+     */
+    void insertSkillRoles(@Param("skillId") Long skillId, @Param("roleIds") List<Long> roleIds);
+
+    /**
      * Skill 列表行，额外携带关联业务接口名称和编码。
      */
     record SkillRow(
@@ -42,12 +57,22 @@ public interface SkillMapper extends BaseMapper<AiSkill> {
             String apiName,
             String apiCode,
             String permissionCode,
+            String visibility,
             Integer timeoutMs,
             Integer maxResultCount,
             Integer status,
             Integer versionNo,
+            Long createdBy,
             LocalDateTime createdTime,
+            Long updatedBy,
             LocalDateTime updatedTime
     ) {
+        public SkillRow(Long id, String skillCode, String skillName, String description, Long apiId,
+                        String apiName, String apiCode, String permissionCode, Integer timeoutMs,
+                        Integer maxResultCount, Integer status, Integer versionNo,
+                        LocalDateTime createdTime, LocalDateTime updatedTime) {
+            this(id, skillCode, skillName, description, apiId, apiName, apiCode, permissionCode, "PRIVATE", timeoutMs,
+                    maxResultCount, status, versionNo, null, createdTime, null, updatedTime);
+        }
     }
 }

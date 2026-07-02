@@ -42,6 +42,11 @@
           </el-tag>
         </template>
       </el-table-column>
+      <el-table-column label="可见角色" min-width="180" show-overflow-tooltip>
+        <template #default="{ row }">
+          {{ roleNames(row.roleIds) }}
+        </template>
+      </el-table-column>
       <el-table-column label="更新时间" width="180">
         <template #default="{ row }">
           {{ formatDateTime(row.updatedTime) }}
@@ -148,6 +153,18 @@
         <el-form-item label="读取超时" prop="readTimeout">
           <el-input-number v-model="systemForm.readTimeout" :min="1" :max="300000" :step="1000" controls-position="right" />
         </el-form-item>
+        <el-form-item label="可见角色">
+          <el-select
+            v-model="systemForm.roleIds"
+            class="full-select"
+            multiple
+            collapse-tags
+            collapse-tags-tooltip
+            placeholder="不选择则仅管理员可见"
+          >
+            <el-option v-for="role in roles" :key="role.id" :label="role.roleName" :value="role.id" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-switch v-model="systemForm.status" :active-value="1" :inactive-value="0" />
         </el-form-item>
@@ -176,6 +193,7 @@ import {
   updateBusinessSystemStatus,
   type BusinessSystemItem
 } from '@/api/business-systems'
+import { fetchRoleOptions, type RoleOption } from '@/api/roles'
 import { useAuthStore } from '@/stores/auth'
 
 type AuthType = 'NONE' | 'API_KEY' | 'BEARER_TOKEN' | 'BASIC' | 'CUSTOM_HEADER'
@@ -183,6 +201,7 @@ type AuthType = 'NONE' | 'API_KEY' | 'BEARER_TOKEN' | 'BASIC' | 'CUSTOM_HEADER'
 const loading = ref(false)
 const submitting = ref(false)
 const systems = ref<BusinessSystemItem[]>([])
+const roles = ref<RoleOption[]>([])
 const total = ref(0)
 const dialogVisible = ref(false)
 const editingSystem = ref<BusinessSystemItem | null>(null)
@@ -213,7 +232,8 @@ const systemForm = reactive({
   connectTimeout: 5000,
   readTimeout: 10000,
   status: 1,
-  description: ''
+  description: '',
+  roleIds: [] as string[]
 })
 
 const authConfigForm = reactive({
@@ -233,8 +253,18 @@ const rules: FormRules = {
 }
 
 onMounted(() => {
+  void loadRoleOptions()
   void loadSystems()
 })
+
+// 加载可选角色，用于配置业务系统的数据可见范围。
+async function loadRoleOptions() {
+  try {
+    roles.value = await fetchRoleOptions()
+  } catch (error) {
+    showError(error, '加载角色选项失败')
+  }
+}
 
 // 加载业务系统列表，并把空查询条件转换成后端可忽略的参数。
 async function loadSystems() {
@@ -291,7 +321,8 @@ async function openEditDialog(system: BusinessSystemItem) {
       connectTimeout: detail.connectTimeout,
       readTimeout: detail.readTimeout,
       status: detail.status,
-      description: detail.description || ''
+      description: detail.description || '',
+      roleIds: detail.roleIds || []
     })
     parseAuthConfig(detail.authConfig)
     dialogVisible.value = true
@@ -369,7 +400,8 @@ function resetForm() {
     connectTimeout: 5000,
     readTimeout: 10000,
     status: 1,
-    description: ''
+    description: '',
+    roleIds: []
   })
   resetAuthConfig()
 }
@@ -428,6 +460,15 @@ function buildAuthConfig() {
 // 展示认证方式中文文案。
 function authTypeLabel(authType: string) {
   return authTypeOptions.find((option) => option.value === authType)?.label || authType
+}
+
+// 把角色 ID 展示成角色名称；未分配角色时只有管理员能查看。
+function roleNames(roleIds: string[] | undefined) {
+  if (!roleIds?.length) {
+    return '仅管理员'
+  }
+  const roleMap = new Map(roles.value.map((role) => [role.id, role.roleName]))
+  return roleIds.map((roleId) => roleMap.get(roleId) || roleId).join('、')
 }
 
 // 后端 LocalDateTime 可能带 T，这里统一展示为空格分隔。

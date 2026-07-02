@@ -26,10 +26,14 @@ export interface SkillItem {
   apiName: string | null
   apiCode: string | null
   permissionCode: string | null
+  visibility: 'PRIVATE' | 'PUBLIC'
   timeoutMs: number
   maxResultCount: number
   status: number
   versionNo: number
+  createdBy: string | null
+  updatedBy: string | null
+  roleIds: string[]
   createdTime: string
   updatedTime: string
   parameters: SkillParameterItem[]
@@ -49,9 +53,11 @@ export interface SkillPayload {
   description: string
   apiId: string
   permissionCode?: string | null
+  visibility: 'PRIVATE' | 'PUBLIC'
   timeoutMs?: number | null
   maxResultCount?: number | null
   status: number
+  roleIds: string[]
   parameters: SkillParameterItem[]
 }
 

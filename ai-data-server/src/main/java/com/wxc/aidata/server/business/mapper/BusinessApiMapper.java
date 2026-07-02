@@ -31,6 +31,21 @@ public interface BusinessApiMapper extends BaseMapper<BizApi> {
     boolean existsByApiCodeExcludeId(@Param("apiCode") String apiCode, @Param("id") Long id);
 
     /**
+     * 查询业务接口授权角色 ID，用于详情回填和访问校验。
+     */
+    List<Long> findRoleIdsByApiId(Long apiId);
+
+    /**
+     * 覆盖保存角色范围前先删除旧关系。
+     */
+    void deleteRolesByApiId(Long apiId);
+
+    /**
+     * 批量插入业务接口角色范围。
+     */
+    void insertApiRoles(@Param("apiId") Long apiId, @Param("roleIds") List<Long> roleIds);
+
+    /**
      * 分页查询行对象，额外携带业务系统名称。
      */
     record BusinessApiRow(
@@ -48,8 +63,17 @@ public interface BusinessApiMapper extends BaseMapper<BizApi> {
             String responseDataPath,
             Integer status,
             String description,
+            Long createdBy,
             LocalDateTime createdTime,
+            Long updatedBy,
             LocalDateTime updatedTime
     ) {
+        public BusinessApiRow(Long id, Long systemId, String systemName, String systemBaseUrl, String apiCode,
+                              String apiName, String requestPath, String requestMethod, String contentType,
+                              Integer connectTimeout, Integer readTimeout, String responseDataPath,
+                              Integer status, String description, LocalDateTime createdTime, LocalDateTime updatedTime) {
+            this(id, systemId, systemName, systemBaseUrl, apiCode, apiName, requestPath, requestMethod, contentType,
+                    connectTimeout, readTimeout, responseDataPath, status, description, null, createdTime, null, updatedTime);
+        }
     }
 }

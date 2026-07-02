@@ -11,9 +11,11 @@ public record SkillUpdateRequest(
         String description,
         Long apiId,
         String permissionCode,
+        String visibility,
         Integer timeoutMs,
         Integer maxResultCount,
         Integer status,
+        List<Long> roleIds,
         List<SkillParameterRequest> parameters
 ) {
 }

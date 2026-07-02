@@ -78,7 +78,8 @@ public class BusinessSystemController {
                 request.connectTimeout(),
                 request.readTimeout(),
                 request.status(),
-                request.description()
+                request.description(),
+                request.roleIds()
         ));
         return Result.success(null);
     }
@@ -102,7 +103,8 @@ public class BusinessSystemController {
                 request.connectTimeout(),
                 request.readTimeout(),
                 request.status(),
-                request.description()
+                request.description(),
+                request.roleIds()
         ));
         return Result.success(null);
     }

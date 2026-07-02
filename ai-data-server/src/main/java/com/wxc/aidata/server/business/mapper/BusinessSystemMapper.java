@@ -28,4 +28,19 @@ public interface BusinessSystemMapper extends BaseMapper<BizSystem> {
      * 查询除当前 ID 外是否存在相同编码，用于编辑校验。
      */
     boolean existsBySystemCodeExcludeId(@Param("systemCode") String systemCode, @Param("id") Long id);
+
+    /**
+     * 查询业务系统授权角色 ID，用于详情回填和访问校验。
+     */
+    List<Long> findRoleIdsBySystemId(Long systemId);
+
+    /**
+     * 覆盖保存角色范围前先删除旧关系。
+     */
+    void deleteRolesBySystemId(Long systemId);
+
+    /**
+     * 批量插入业务系统角色范围。
+     */
+    void insertSystemRoles(@Param("systemId") Long systemId, @Param("roleIds") List<Long> roleIds);
 }

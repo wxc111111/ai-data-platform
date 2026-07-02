@@ -149,12 +149,14 @@ mysql -u root -p ai_data_platform < sql/update/20260626-business-system-permissi
 mysql -u root -p ai_data_platform < sql/update/20260626-business-api-permissions.sql
 mysql -u root -p ai_data_platform < sql/update/20260626-skill-permissions.sql
 mysql -u root -p ai_data_platform < sql/update/20260626-current-user-menus.sql
+mysql -u root -p ai_data_platform < sql/update/20260629-resource-role-scope.sql
 ```
 
 `20260626-business-system-permissions.sql` 会创建“数据接入”和“业务系统管理”菜单。
 `20260626-business-api-permissions.sql` 会创建“业务接口管理”菜单、按钮权限和在线测试权限。
 `20260626-skill-permissions.sql` 会创建一级“Skill 管理”模块、“Skill 列表”菜单、按钮权限和在线测试权限。
 `20260626-current-user-menus.sql` 会补齐“首页”“数据接入”公共菜单，并将“业务系统管理”挂到“数据接入”分组下。
+`20260629-resource-role-scope.sql` 会为业务系统、业务接口和 Skill 增加角色可见范围、创建/更新审计字段，并将历史 Skill 类型默认置为私有；历史数据不默认授权角色，只有 admin 可见。
 
 ### 本地启动
 

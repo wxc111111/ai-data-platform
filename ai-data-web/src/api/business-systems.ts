@@ -12,6 +12,9 @@ export interface BusinessSystemItem {
   readTimeout: number
   status: number
   description: string | null
+  createdBy: string | null
+  updatedBy: string | null
+  roleIds: string[]
   createdTime: string
   updatedTime: string
 }
@@ -34,6 +37,7 @@ export interface BusinessSystemPayload {
   readTimeout: number
   status: number
   description?: string
+  roleIds: string[]
 }
 
 // 查询业务系统分页列表，供管理页面表格展示。

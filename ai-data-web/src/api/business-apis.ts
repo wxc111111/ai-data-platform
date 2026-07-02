@@ -31,6 +31,9 @@ export interface BusinessApiItem {
   responseDataPath: string | null
   status: number
   description: string | null
+  createdBy: string | null
+  updatedBy: string | null
+  roleIds: string[]
   createdTime: string
   updatedTime: string
   parameters: BusinessApiParameterItem[]
@@ -57,6 +60,7 @@ export interface BusinessApiPayload {
   responseDataPath?: string | null
   status: number
   description?: string
+  roleIds: string[]
   parameters: BusinessApiParameterItem[]
 }
 
