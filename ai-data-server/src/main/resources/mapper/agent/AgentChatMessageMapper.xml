@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wxc.aidata.server.agent.mapper.AgentChatMessageMapper">
+
+    <resultMap id="MessageMap" type="com.wxc.aidata.server.agent.entity.AiChatMessage">
+        <id property="id" column="id"/>
+        <result property="sessionId" column="session_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="messageRole" column="message_role"/>
+        <result property="content" column="content"/>
+        <result property="usedSkillsJson" column="used_skills_json"/>
+        <result property="createdTime" column="created_time"/>
+        <result property="createdBy" column="created_by"/>
+    </resultMap>
+
+    <!-- 查询会话消息，按创建顺序恢复聊天上下文。 -->
+    <select id="findMessagesBySessionId" resultMap="MessageMap">
+        SELECT id, session_id, user_id, message_role, content, used_skills_json, created_time, created_by
+        FROM ai_chat_message
+        WHERE session_id = #{sessionId}
+        ORDER BY created_time ASC, id ASC
+    </select>
+</mapper>

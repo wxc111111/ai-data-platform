@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wxc.aidata.server.agent.mapper.AgentChatSessionMapper">
+
+    <resultMap id="SessionMap" type="com.wxc.aidata.server.agent.entity.AiChatSession">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="title" column="title"/>
+        <result property="lastMessageTime" column="last_message_time"/>
+        <result property="createdTime" column="created_time"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="updatedTime" column="updated_time"/>
+        <result property="updatedBy" column="updated_by"/>
+    </resultMap>
+
+    <!-- 查询当前用户历史会话，admin 不按用户过滤。 -->
+    <select id="findSessions" resultMap="SessionMap">
+        SELECT id, user_id, title, last_message_time, created_time, created_by, updated_time, updated_by
+        FROM ai_chat_session
+        <where>
+            <if test="admin == false">
+                user_id = #{userId}
+            </if>
+        </where>
+        ORDER BY last_message_time DESC, id DESC
+    </select>
+</mapper>
