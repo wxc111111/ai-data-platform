@@ -1,0 +1,130 @@
+{
+  "session_id" : "70796020681805824",
+  "user_id" : "1",
+  "summary" : "",
+  "context" : [ {
+    "id" : "2690ac80-d4ca-47d2-a6b3-b90a550e7e48",
+    "name" : null,
+    "role" : "USER",
+    "content" : [ {
+      "type" : "text",
+      "text" : "你好"
+    } ],
+    "metadata" : { },
+    "timestamp" : "2026-07-15 16:38:08.869",
+    "usage" : null
+  }, {
+    "id" : "22501b90-c6b8-93f5-aa56-0d3a14b86ae4",
+    "name" : "ai-data-agent",
+    "role" : "ASSISTANT",
+    "content" : [ {
+      "type" : "text",
+      "text" : "你好！有什么我可以帮您的吗？"
+    } ],
+    "metadata" : {
+      "_chat_usage" : {
+        "inputTokens" : 178,
+        "outputTokens" : 8,
+        "time" : 1.618,
+        "totalTokens" : 186
+      }
+    },
+    "timestamp" : "2026-07-15 16:38:10.610",
+    "usage" : {
+      "inputTokens" : 178,
+      "outputTokens" : 8,
+      "time" : 1.618,
+      "totalTokens" : 186
+    }
+  }, {
+    "id" : "634f4596-e68c-48db-86b8-3da72f4f8016",
+    "name" : null,
+    "role" : "USER",
+    "content" : [ {
+      "type" : "text",
+      "text" : "你是什么模型"
+    } ],
+    "metadata" : { },
+    "timestamp" : "2026-07-15 16:38:19.972",
+    "usage" : null
+  }, {
+    "id" : "231f70ba-a761-9205-9639-6e794b6eb2bc",
+    "name" : "ai-data-agent",
+    "role" : "ASSISTANT",
+    "content" : [ {
+      "type" : "text",
+      "text" : "我是通义千问（Qwen），阿里巴巴集团旗下的超大规模语言模型。如果您有任何问题或需要帮助，欢迎随时告诉我！"
+    } ],
+    "metadata" : {
+      "_chat_usage" : {
+        "inputTokens" : 199,
+        "outputTokens" : 28,
+        "time" : 1.054,
+        "totalTokens" : 227
+      }
+    },
+    "timestamp" : "2026-07-15 16:38:21.114",
+    "usage" : {
+      "inputTokens" : 199,
+      "outputTokens" : 28,
+      "time" : 1.054,
+      "totalTokens" : 227
+    }
+  }, {
+    "id" : "ddc678fd-f7fb-40fd-abd7-a8af80a7540f",
+    "name" : null,
+    "role" : "USER",
+    "content" : [ {
+      "type" : "text",
+      "text" : "生产一段python代码打印一句话"
+    } ],
+    "metadata" : { },
+    "timestamp" : "2026-07-15 16:43:09.179",
+    "usage" : null
+  }, {
+    "id" : "5adafb27-8ee9-98a6-a42a-b7fc20cdf117",
+    "name" : "ai-data-agent",
+    "role" : "ASSISTANT",
+    "content" : [ {
+      "type" : "text",
+      "text" : "```python\nprint(\"Hello, World!\")\n```"
+    } ],
+    "metadata" : {
+      "_chat_usage" : {
+        "inputTokens" : 243,
+        "outputTokens" : 10,
+        "time" : 0.919,
+        "totalTokens" : 253
+      }
+    },
+    "timestamp" : "2026-07-15 16:43:10.107",
+    "usage" : {
+      "inputTokens" : 243,
+      "outputTokens" : 10,
+      "time" : 0.919,
+      "totalTokens" : 253
+    }
+  } ],
+  "reply_id" : "4daf3776604f407d933bdb571df01bee",
+  "cur_iter" : 0,
+  "shutdown_interrupted" : false,
+  "permission_context" : {
+    "mode" : "default",
+    "working_directories" : { },
+    "allow_rules" : { },
+    "deny_rules" : { },
+    "ask_rules" : { }
+  },
+  "tool_context" : {
+    "max_cache_files" : 100,
+    "max_cache_bytes" : 25000.0,
+    "activated_groups" : [ ]
+  },
+  "tasks_context" : {
+    "tasks" : [ ]
+  },
+  "plan_mode_context" : {
+    "plan_active" : false,
+    "current_plan_file" : null
+  }
+}
