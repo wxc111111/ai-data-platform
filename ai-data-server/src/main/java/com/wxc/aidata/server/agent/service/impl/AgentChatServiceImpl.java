@@ -21,6 +21,7 @@ import com.wxc.aidata.server.agent.service.AgentChatService;
 import com.wxc.aidata.server.agent.service.AgentChatStreamHandler;
 import com.wxc.aidata.server.agent.service.AgentChatStreamSink;
 import com.wxc.aidata.server.common.id.IdGenerator;
+import com.wxc.aidata.server.permission.model.ResourceAccessScope;
 import com.wxc.aidata.server.permission.service.CurrentUserAccessService;
 import com.wxc.aidata.server.skill.model.SkillPageQuery;
 import com.wxc.aidata.server.skill.response.SkillResponse;
@@ -133,7 +134,9 @@ public class AgentChatServiceImpl implements AgentChatService {
     @Transactional(rollbackFor = Exception.class)
     public AgentChatResponse chat(AgentChatCommand command) {
         validateCommand(command);
-        Long userId = currentUserAccessService.currentUserId();
+        // 在进入 AgentScope 前固化权限，工具异步执行时不再依赖当前 Web 请求。
+        ResourceAccessScope accessScope = currentUserAccessService.currentAccessScope();
+        Long userId = accessScope.userId();
         LocalDateTime now = LocalDateTime.now();
         AiChatSession session = command.sessionId() == null
                 ? createSession(command.message(), userId, now)
@@ -141,7 +144,9 @@ public class AgentChatServiceImpl implements AgentChatService {
         saveMessage(session.getId(), userId, "USER", command.message(), List.of(), now);
 
         List<SkillResponse> skills = loadAvailableSkills();
-        var agentResponse = agentChatClient.chat(new AgentChatClientRequest(userId, session.getId(), command.message(), skills));
+        var agentResponse = agentChatClient.chat(new AgentChatClientRequest(
+                userId, session.getId(), command.message(), skills, accessScope
+        ));
         LocalDateTime completeTime = LocalDateTime.now();
         saveMessage(session.getId(), userId, "ASSISTANT", agentResponse.answer(), agentResponse.usedSkills(), completeTime);
         touchSession(session, userId, completeTime);
@@ -155,7 +160,9 @@ public class AgentChatServiceImpl implements AgentChatService {
     @Transactional(rollbackFor = Exception.class)
     public void streamChat(AgentChatCommand command, AgentChatStreamSink sink) {
         validateCommand(command);
-        Long userId = currentUserAccessService.currentUserId();
+        // 流式问答同样只在 Web 线程读取一次用户权限，避免工具线程丢失请求上下文。
+        ResourceAccessScope accessScope = currentUserAccessService.currentAccessScope();
+        Long userId = accessScope.userId();
         LocalDateTime now = LocalDateTime.now();
         AiChatSession session = command.sessionId() == null
                 ? createSession(command.message(), userId, now)
@@ -164,7 +171,9 @@ public class AgentChatServiceImpl implements AgentChatService {
         sink.send(AgentChatStreamEvent.session(session.getId()));
 
         List<SkillResponse> skills = loadAvailableSkills();
-        AgentChatClientRequest request = new AgentChatClientRequest(userId, session.getId(), command.message(), skills);
+        AgentChatClientRequest request = new AgentChatClientRequest(
+                userId, session.getId(), command.message(), skills, accessScope
+        );
         agentChatClient.stream(request, new PersistingStreamHandler(session, userId, sink));
     }
 

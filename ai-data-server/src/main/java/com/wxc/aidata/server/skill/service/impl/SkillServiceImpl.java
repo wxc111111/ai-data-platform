@@ -9,6 +9,7 @@ import com.wxc.aidata.server.business.response.BusinessApiResponse;
 import com.wxc.aidata.server.business.response.BusinessApiTestResponse;
 import com.wxc.aidata.server.business.service.BusinessApiService;
 import com.wxc.aidata.server.common.id.IdGenerator;
+import com.wxc.aidata.server.permission.model.ResourceAccessScope;
 import com.wxc.aidata.server.permission.service.CurrentUserAccessService;
 import com.wxc.aidata.server.skill.entity.AiSkill;
 import com.wxc.aidata.server.skill.entity.AiSkillParameter;
@@ -202,6 +203,26 @@ public class SkillServiceImpl implements SkillService {
     @Override
     public BusinessApiTestResponse testSkill(Long id, SkillTestCommand command) {
         AiSkill skill = getAccessibleSkillOrThrow(id);
+        return executeSkill(skill, command, null);
+    }
+
+    /**
+     * 使用调用方传入的权限快照执行 Skill，避免异步线程读取当前 Web 请求。
+     */
+    @Override
+    public BusinessApiTestResponse testSkill(Long id, SkillTestCommand command, ResourceAccessScope accessScope) {
+        if (accessScope == null) {
+            throw new IllegalArgumentException("Skill 执行权限上下文不能为空");
+        }
+        AiSkill skill = getAccessibleSkillOrThrow(id, accessScope);
+        return executeSkill(skill, command, accessScope);
+    }
+
+    /**
+     * 统一完成 Skill 参数映射，并根据调用来源选择业务接口执行入口。
+     */
+    private BusinessApiTestResponse executeSkill(AiSkill skill, SkillTestCommand command,
+                                                 ResourceAccessScope accessScope) {
         if (!Integer.valueOf(1).equals(skill.getStatus())) {
             throw new BusinessException(SKILL_ERROR_CODE, "Skill 已禁用");
         }
@@ -214,7 +235,11 @@ public class SkillServiceImpl implements SkillService {
                 apiValues.put(parameter.getApiParameterName(), value);
             }
         }
-        return businessApiService.testBusinessApi(skill.getApiId(), new BusinessApiTestCommand(apiValues));
+        BusinessApiTestCommand apiCommand = new BusinessApiTestCommand(apiValues);
+        if (accessScope == null) {
+            return businessApiService.testBusinessApi(skill.getApiId(), apiCommand);
+        }
+        return businessApiService.testBusinessApi(skill.getApiId(), apiCommand, accessScope);
     }
 
     /**
@@ -285,6 +310,17 @@ public class SkillServiceImpl implements SkillService {
     }
 
     /**
+     * 使用显式权限快照查询可访问 Skill，不依赖当前请求线程。
+     */
+    private AiSkill getAccessibleSkillOrThrow(Long id, ResourceAccessScope accessScope) {
+        AiSkill skill = getSkillOrThrow(id);
+        if (!canAccessSkill(skill, skillMapper.findRoleIdsBySkillId(id), accessScope)) {
+            throw new BusinessException(SKILL_ERROR_CODE, "无权访问该 Skill");
+        }
+        return skill;
+    }
+
+    /**
      * 判断当前用户是否能访问 Skill：公共 Skill 放行；私有 Skill 允许 admin、创建人和命中角色范围的用户访问。
      */
     private boolean canAccessSkill(AiSkill skill, List<Long> roleIds) {
@@ -299,6 +335,22 @@ public class SkillServiceImpl implements SkillService {
             return true;
         }
         return currentUserAccessService.canAccessResource(roleIds);
+    }
+
+    /**
+     * 按显式用户、角色和管理员标识判断 Skill 可见范围。
+     */
+    private boolean canAccessSkill(AiSkill skill, List<Long> roleIds, ResourceAccessScope accessScope) {
+        if (accessScope.admin()) {
+            return true;
+        }
+        if ("PUBLIC".equalsIgnoreCase(skill.getVisibility())) {
+            return true;
+        }
+        if (accessScope.userId().equals(skill.getCreatedBy())) {
+            return true;
+        }
+        return currentUserAccessService.canAccessResource(roleIds, accessScope);
     }
 
     /**

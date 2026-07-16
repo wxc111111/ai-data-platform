@@ -10,6 +10,7 @@ import com.wxc.aidata.server.agent.response.AgentUsedSkillResponse;
 import com.wxc.aidata.server.agent.service.AgentChatClient;
 import com.wxc.aidata.server.agent.service.AgentChatStreamHandler;
 import com.wxc.aidata.server.business.response.BusinessApiTestResponse;
+import com.wxc.aidata.server.permission.model.ResourceAccessScope;
 import com.wxc.aidata.server.skill.model.SkillTestCommand;
 import com.wxc.aidata.server.skill.response.SkillParameterResponse;
 import com.wxc.aidata.server.skill.response.SkillResponse;
@@ -94,7 +95,7 @@ public class AgentScopeChatClient implements AgentChatClient {
         List<AgentUsedSkillResponse> usedSkills = new CopyOnWriteArrayList<>();
         Toolkit toolkit = new Toolkit();
         for (SkillResponse skill : request.skills()) {
-            toolkit.registerTool(new SkillTool(skill, skillService, objectMapper, usedSkills));
+            toolkit.registerTool(new SkillTool(skill, skillService, objectMapper, usedSkills, request.accessScope()));
         }
 
         try {
@@ -140,9 +141,10 @@ public class AgentScopeChatClient implements AgentChatClient {
         private final SkillService skillService;
         private final ObjectMapper objectMapper;
         private final List<AgentUsedSkillResponse> usedSkills;
+        private final ResourceAccessScope accessScope;
 
         private SkillTool(SkillResponse skill, SkillService skillService, ObjectMapper objectMapper,
-                          List<AgentUsedSkillResponse> usedSkills) {
+                          List<AgentUsedSkillResponse> usedSkills, ResourceAccessScope accessScope) {
             super(ToolBase.builder()
                     .name(toolName(skill.skillCode()))
                     .description(skill.description())
@@ -153,6 +155,7 @@ public class AgentScopeChatClient implements AgentChatClient {
             this.skillService = skillService;
             this.objectMapper = objectMapper;
             this.usedSkills = usedSkills;
+            this.accessScope = accessScope;
         }
 
         /**
@@ -172,7 +175,10 @@ public class AgentScopeChatClient implements AgentChatClient {
                 @Override
                 public ToolResultBlock call() throws Exception {
                     Map<String, Object> input = param.getInput() == null ? Map.of() : param.getInput();
-                    BusinessApiTestResponse response = skillService.testSkill(skill.id(), new SkillTestCommand(input));
+                    // 工具回调可能运行在非 Web 线程，必须使用请求进入 AgentScope 前固化的权限快照。
+                    BusinessApiTestResponse response = skillService.testSkill(
+                            skill.id(), new SkillTestCommand(input), accessScope
+                    );
                     String output = outputText(response);
                     usedSkills.add(new AgentUsedSkillResponse(skill.id(), skill.skillCode(), skill.skillName(), input, output));
                     return ToolResultBlock.builder()

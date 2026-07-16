@@ -2,6 +2,7 @@ package com.wxc.aidata.server.permission.service;
 
 import com.wxc.aidata.server.auth.service.AuthSessionManager;
 import com.wxc.aidata.server.permission.mapper.PermissionMapper;
+import com.wxc.aidata.server.permission.model.ResourceAccessScope;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -49,13 +50,34 @@ public class CurrentUserAccessService {
     }
 
     /**
+     * 在 Web 请求线程中生成不可变权限快照，供异步任务和 Agent 工具安全复用。
+     */
+    public ResourceAccessScope currentAccessScope() {
+        Long userId = currentUserId();
+        List<Long> roleIds = permissionMapper.findRoleIds(userId);
+        boolean admin = permissionMapper.findRoleCodes(userId).stream()
+                .anyMatch(roleCode -> ADMIN_ROLE_CODE.equalsIgnoreCase(roleCode));
+        return new ResourceAccessScope(userId, roleIds, admin);
+    }
+
+    /**
      * 判断当前用户是否可访问某条资源；空角色资源仅 admin 可访问。
      */
     public boolean canAccessResource(List<Long> resourceRoleIds) {
-        if (currentUserIsAdmin()) {
+        return canAccessResource(resourceRoleIds, currentAccessScope());
+    }
+
+    /**
+     * 使用显式权限快照判断资源范围，避免非 Web 线程再次读取 Sa-Token。
+     */
+    public boolean canAccessResource(List<Long> resourceRoleIds, ResourceAccessScope accessScope) {
+        if (accessScope == null) {
+            throw new IllegalArgumentException("资源访问权限上下文不能为空");
+        }
+        if (accessScope.admin()) {
             return true;
         }
-        Set<Long> currentRoleIdSet = Set.copyOf(currentRoleIds());
+        Set<Long> currentRoleIdSet = Set.copyOf(accessScope.roleIds());
         return resourceRoleIds != null && resourceRoleIds.stream().anyMatch(currentRoleIdSet::contains);
     }
 }

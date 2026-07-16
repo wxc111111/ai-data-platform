@@ -26,6 +26,7 @@ import com.wxc.aidata.server.business.service.BusinessApiHttpRequest;
 import com.wxc.aidata.server.business.service.BusinessApiHttpResponse;
 import com.wxc.aidata.server.business.service.BusinessApiService;
 import com.wxc.aidata.server.common.id.IdGenerator;
+import com.wxc.aidata.server.permission.model.ResourceAccessScope;
 import com.wxc.aidata.server.permission.service.CurrentUserAccessService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -231,6 +232,31 @@ public class BusinessApiServiceImpl implements BusinessApiService {
             throw new BusinessException(BUSINESS_API_ERROR_CODE, "业务接口已禁用");
         }
         BizSystem system = getAccessibleSystemOrThrow(api.getSystemId(), true);
+        return executeBusinessApiTest(api, system, command);
+    }
+
+    /**
+     * 使用显式权限快照测试业务接口，供 Agent 工具在非 Web 线程中调用。
+     */
+    @Override
+    public BusinessApiTestResponse testBusinessApi(Long id, BusinessApiTestCommand command,
+                                                   ResourceAccessScope accessScope) {
+        if (accessScope == null) {
+            throw new IllegalArgumentException("业务接口执行权限上下文不能为空");
+        }
+        BizApi api = getAccessibleApiOrThrow(id, accessScope);
+        if (!Integer.valueOf(1).equals(api.getStatus())) {
+            throw new BusinessException(BUSINESS_API_ERROR_CODE, "业务接口已禁用");
+        }
+        BizSystem system = getAccessibleSystemOrThrow(api.getSystemId(), true, accessScope);
+        return executeBusinessApiTest(api, system, command);
+    }
+
+    /**
+     * 复用接口参数组装、第三方调用和响应提取逻辑。
+     */
+    private BusinessApiTestResponse executeBusinessApiTest(BizApi api, BizSystem system,
+                                                           BusinessApiTestCommand command) {
         List<BizApiParameter> parameters = parameterMapper.findByApiId(api.getId());
         Map<String, Object> values = command == null || command.parameterValues() == null ? Map.of() : command.parameterValues();
         BusinessApiHttpRequest request = buildHttpRequest(system, api, parameters, values);
@@ -425,6 +451,17 @@ public class BusinessApiServiceImpl implements BusinessApiService {
     }
 
     /**
+     * 使用显式权限快照校验业务接口资源范围。
+     */
+    private BizApi getAccessibleApiOrThrow(Long id, ResourceAccessScope accessScope) {
+        BizApi api = getApiOrThrow(id);
+        if (!currentUserAccessService.canAccessResource(businessApiMapper.findRoleIdsByApiId(id), accessScope)) {
+            throw new BusinessException(BUSINESS_API_ERROR_CODE, "无权访问该业务接口");
+        }
+        return api;
+    }
+
+    /**
      * 查询启用的业务系统，不存在或禁用时阻断接口配置和测试。
      */
     private BizSystem getSystemOrThrow(Long systemId) {
@@ -441,6 +478,23 @@ public class BusinessApiServiceImpl implements BusinessApiService {
     private BizSystem getAccessibleSystemOrThrow(Long systemId, boolean requireEnabled) {
         BizSystem system = getSystemByIdOrThrow(systemId);
         if (!currentUserAccessService.canAccessResource(businessSystemMapper.findRoleIdsBySystemId(systemId))) {
+            throw new BusinessException(BUSINESS_API_ERROR_CODE, "无权访问所属业务系统");
+        }
+        if (requireEnabled && !Integer.valueOf(1).equals(system.getStatus())) {
+            throw new BusinessException(BUSINESS_API_ERROR_CODE, "业务系统已禁用");
+        }
+        return system;
+    }
+
+    /**
+     * 使用显式权限快照校验所属业务系统资源范围。
+     */
+    private BizSystem getAccessibleSystemOrThrow(Long systemId, boolean requireEnabled,
+                                                 ResourceAccessScope accessScope) {
+        BizSystem system = getSystemByIdOrThrow(systemId);
+        if (!currentUserAccessService.canAccessResource(
+                businessSystemMapper.findRoleIdsBySystemId(systemId), accessScope
+        )) {
             throw new BusinessException(BUSINESS_API_ERROR_CODE, "无权访问所属业务系统");
         }
         if (requireEnabled && !Integer.valueOf(1).equals(system.getStatus())) {

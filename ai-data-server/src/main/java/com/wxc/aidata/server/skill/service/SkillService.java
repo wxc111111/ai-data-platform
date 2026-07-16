@@ -2,6 +2,7 @@ package com.wxc.aidata.server.skill.service;
 
 import com.wxc.aidata.common.response.PageResult;
 import com.wxc.aidata.server.business.response.BusinessApiTestResponse;
+import com.wxc.aidata.server.permission.model.ResourceAccessScope;
 import com.wxc.aidata.server.skill.model.SkillCreateCommand;
 import com.wxc.aidata.server.skill.model.SkillPageQuery;
 import com.wxc.aidata.server.skill.model.SkillTestCommand;
@@ -47,4 +48,9 @@ public interface SkillService {
      * 按 Skill 参数映射发起一次在线测试。
      */
     BusinessApiTestResponse testSkill(Long id, SkillTestCommand command);
+
+    /**
+     * 使用显式权限快照执行 Skill，供 Agent 等非 Web 调用方使用。
+     */
+    BusinessApiTestResponse testSkill(Long id, SkillTestCommand command, ResourceAccessScope accessScope);
 }

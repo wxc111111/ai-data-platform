@@ -7,6 +7,7 @@ import com.wxc.aidata.server.business.model.BusinessApiTestCommand;
 import com.wxc.aidata.server.business.model.BusinessApiUpdateCommand;
 import com.wxc.aidata.server.business.response.BusinessApiResponse;
 import com.wxc.aidata.server.business.response.BusinessApiTestResponse;
+import com.wxc.aidata.server.permission.model.ResourceAccessScope;
 
 /**
  * 业务接口管理服务，封装第三方接口配置、参数维护和在线测试规则。
@@ -47,4 +48,9 @@ public interface BusinessApiService {
      * 按当前接口配置发起一次在线测试。
      */
     BusinessApiTestResponse testBusinessApi(Long id, BusinessApiTestCommand command);
+
+    /**
+     * 使用显式权限快照测试业务接口，供 Agent 等非 Web 调用方使用。
+     */
+    BusinessApiTestResponse testBusinessApi(Long id, BusinessApiTestCommand command, ResourceAccessScope accessScope);
 }
