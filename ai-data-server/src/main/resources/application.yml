@@ -45,6 +45,10 @@ sa-token:
 ai-data:
   file:
     root-path: /data/ai-data-platform
+  agent:
+    model: ${DASHSCOPE_MODEL:dashscope:qwen-plus}
+    state-path: ${AGENTSCOPE_STATE_PATH:.agentscope/state/ai-data-agent}
+    system-prompt: ${AGENT_SYSTEM_PROMPT:你是 AI 数据服务中台的问答助手。需要查询业务数据时，只能调用已授权的 Skill；回答要简洁、准确。}
 
 management:
   endpoints:

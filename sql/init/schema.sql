@@ -6,6 +6,8 @@ USE ai_data_platform;
 
 DROP TABLE IF EXISTS sys_operation_log;
 DROP TABLE IF EXISTS sys_login_log;
+DROP TABLE IF EXISTS ai_chat_message;
+DROP TABLE IF EXISTS ai_chat_session;
 DROP TABLE IF EXISTS ai_skill_execution_log;
 DROP TABLE IF EXISTS sync_job_log;
 DROP TABLE IF EXISTS sync_job_config;
@@ -255,6 +257,33 @@ CREATE TABLE ai_skill_execution_log (
     KEY idx_skill_code (skill_code),
     KEY idx_start_time (start_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Skill 调用日志表，保存 Skill 每次调用记录';
+
+CREATE TABLE ai_chat_session (
+    id                BIGINT NOT NULL COMMENT '会话ID',
+    user_id           BIGINT NOT NULL COMMENT '会话所属用户ID',
+    title             VARCHAR(256) NOT NULL COMMENT '会话标题，默认取首条消息',
+    last_message_time DATETIME NOT NULL COMMENT '最后一条消息时间，用于历史列表排序',
+    created_time      DATETIME NOT NULL COMMENT '创建时间',
+    created_by        BIGINT NOT NULL COMMENT '创建人用户ID',
+    updated_time      DATETIME NOT NULL COMMENT '更新时间',
+    updated_by        BIGINT NOT NULL COMMENT '更新人用户ID',
+    PRIMARY KEY (id),
+    KEY idx_user_time (user_id, last_message_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='AI 问答会话表，保存用户历史对话列表';
+
+CREATE TABLE ai_chat_message (
+    id               BIGINT NOT NULL COMMENT '消息ID',
+    session_id       BIGINT NOT NULL COMMENT '所属会话ID',
+    user_id          BIGINT NOT NULL COMMENT '消息所属用户ID',
+    message_role     VARCHAR(32) NOT NULL COMMENT '消息角色：USER、ASSISTANT',
+    content          MEDIUMTEXT NOT NULL COMMENT '消息内容',
+    used_skills_json TEXT COMMENT '助手消息使用的 Skill 调用摘要 JSON',
+    created_time     DATETIME NOT NULL COMMENT '创建时间',
+    created_by       BIGINT NOT NULL COMMENT '创建人用户ID',
+    PRIMARY KEY (id),
+    KEY idx_session_time (session_id, created_time),
+    KEY idx_user_time (user_id, created_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='AI 问答消息表，保存用户和助手的历史消息';
 
 CREATE TABLE sys_login_log (
     id              BIGINT NOT NULL COMMENT '主键ID',

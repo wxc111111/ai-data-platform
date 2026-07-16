@@ -10,6 +10,7 @@ import UserManageView from '@/views/UserManageView.vue'
 import BusinessSystemView from '@/views/BusinessSystemView.vue'
 import BusinessApiView from '@/views/BusinessApiView.vue'
 import SkillView from '@/views/SkillView.vue'
+import AgentChatView from '@/views/AgentChatView.vue'
 import LoginLogView from '@/views/LoginLogView.vue'
 import OperationLogView from '@/views/OperationLogView.vue'
 
@@ -85,6 +86,14 @@ export const router = createRouter({
           component: SkillView,
           meta: {
             permission: 'system:skill:list-menu'
+          }
+        },
+        {
+          path: 'agent-chat',
+          name: 'agent-chat',
+          component: AgentChatView,
+          meta: {
+            permission: 'system:agent-chat:menu'
           }
         },
         {

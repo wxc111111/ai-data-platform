@@ -61,6 +61,10 @@ INSERT INTO sys_permission (
     updated_time
 ) VALUES
       (800, 0, '首页', NULL, 'MENU', '/home/overview', 'views/DashboardHomeView.vue', 'House', 800, 1, NOW(), NOW()),
+      (700, 0, 'AI', 'system:ai:menu', 'MENU', NULL, NULL, 'ChatDotRound', 700, 1, NOW(), NOW()),
+      (710, 700, 'AI问答', 'system:agent-chat:menu', 'MENU', '/home/agent-chat', 'views/AgentChatView.vue', 'ChatLineRound', 710, 1, NOW(), NOW()),
+      (711, 710, 'AI问答列表', 'system:agent-chat:list', 'API', NULL, NULL, NULL, 711, 1, NOW(), NOW()),
+      (712, 710, 'AI问答发送', 'system:agent-chat:chat', 'API', NULL, NULL, NULL, 712, 1, NOW(), NOW()),
       (900, 0, '系统管理', 'system:manage', 'MENU', NULL, NULL, 'Setting', 900, 1, NOW(), NOW()),
       (950, 0, '数据接入', NULL, 'MENU', NULL, NULL, 'Database', 950, 1, NOW(), NOW()),
       (1000, 900, '用户管理', 'system:user:menu', 'MENU', '/home/users', 'views/UserManageView.vue', 'User', 1000, 1, NOW(), NOW()),

@@ -26,6 +26,7 @@
         <mybatis-plus.version>3.5.9</mybatis-plus.version>
         <pagehelper-spring-boot.version>2.1.0</pagehelper-spring-boot.version>
         <sa-token.version>1.38.0</sa-token.version>
+        <agentscope.version>2.0.0-RC3</agentscope.version>
         <mysql.version>8.4.0</mysql.version>
         <maven.compiler.release>${java.version}</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
